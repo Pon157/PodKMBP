@@ -7,6 +7,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+import './bot.ts';
+
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 6776;
 
@@ -122,6 +124,13 @@ app.post('/api/auth/tg-login-init', async (req, res) => {
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// Public Config Endpoint
+app.get('/api/config', (req, res) => {
+  res.json({
+    botUsername: process.env.TELEGRAM_BOT_USERNAME || 'verifsitepodsl_bot'
+  });
 });
 
 // TG Login Status Poll

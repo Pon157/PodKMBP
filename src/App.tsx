@@ -939,7 +939,7 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
     }
   };
 
-  // Fetch fresh admins & CAPTCHA on mount
+  // Fetch fresh admins, CAPTCHA & config on mount
   useEffect(() => {
     const fetchAdmins = async () => {
       try {
@@ -952,8 +952,22 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
         console.error('Failed to load admins', err);
       }
     };
+    const fetchConfig = async () => {
+      try {
+        const res = await fetch('/api/config');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.botUsername) {
+            setBotUsername(data.botUsername);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load config', err);
+      }
+    };
     fetchAdmins();
     fetchCaptcha();
+    fetchConfig();
   }, []);
 
   // Handle Telegram login initiation

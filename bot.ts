@@ -9,27 +9,31 @@ const token = process.env.TELEGRAM_BOT_TOKEN;
 const proxy = process.env.TELEGRAM_PROXY; // Optional HTTP / SOCKS proxy
 
 if (!token) {
-  console.error('❌ TELEGRAM_BOT_TOKEN is not defined in your environment variables!');
-  process.exit(1);
-}
+  console.warn('⚠️ TELEGRAM_BOT_TOKEN is not defined in your environment variables! Telegram bot will be disabled.');
+} else {
+  let botOptions: any = {};
+  if (proxy) {
+    console.log(`📡 Configuring Telegram bot to use proxy: ${proxy}`);
+    botOptions.telegram = {
+      agent: new HttpsProxyAgent(proxy)
+    };
+  }
 
-let botOptions: any = {};
-if (proxy) {
-  console.log(`📡 Configuring Telegram bot to use proxy: ${proxy}`);
-  botOptions.telegram = {
-    agent: new HttpsProxyAgent(proxy)
-  };
-}
+  const bot = new Telegraf(token, botOptions);
 
-const bot = new Telegraf(token, botOptions);
+  // Initialize DB Connection (non-blocking async to avoid top-level await)
+  (async () => {
+    try {
+      console.log('📦 Connecting bot to database/storage engine...');
+      await Storage.init();
+      console.log('✅ Database connected to Telegram Bot!');
+    } catch (err) {
+      console.error('❌ Failed to initialize database in bot:', err);
+    }
+  })();
 
-// Initialize DB Connection
-console.log('📦 Connecting bot to database/storage engine...');
-await Storage.init();
-console.log('✅ Database connected to Telegram Bot!');
-
-// Bot /start handler
-bot.start(async (ctx) => {
+  // Bot /start handler
+  bot.start(async (ctx) => {
   const startPayload = ctx.payload; // Deep-linked payload: "login_CODE"
   const user = ctx.from;
 
@@ -270,13 +274,19 @@ bot.on('message', async (ctx) => {
   }
 });
 
-// Run Bot
-bot.launch().then(() => {
-  console.log('🚀 Telegram Bot started successfully in standalone mode!');
-}).catch((err) => {
-  console.error('💥 Critical error starting Telegram Bot:', err);
-});
+  // Run Bot
+  (async () => {
+    try {
+      // Small delay to let storage initialize first
+      await new Promise(r => setTimeout(r, 1000));
+      await bot.launch();
+      console.log('🚀 Telegram Bot started successfully!');
+    } catch (err) {
+      console.error('💥 Critical error starting Telegram Bot:', err);
+    }
+  })();
 
-// Graceful stops
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+  // Graceful stops
+  process.once('SIGINT', () => bot.stop('SIGINT'));
+  process.once('SIGTERM', () => bot.stop('SIGTERM'));
+}
