@@ -63,7 +63,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [takes, setTakes] = useState<Take[]>([]);
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [pricesList, setPricesList] = useState<any[]>([]);
-  const [dbStatus, setDbStatus] = useState<{ postgresMode: boolean; status: string } | null>(null);
+  const [dbStatus, setDbStatus] = useState<{ postgresMode: boolean; status: string; error?: string | null } | null>(null);
   
   // Form States for edit profile
   const [nickname, setNickname] = useState(currentAdmin.nickname);
@@ -376,7 +376,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
           <div className="flex flex-wrap items-center gap-3">
             {/* Database connection status badge */}
-            <div className="bg-wine border border-gummy/40 rounded-xl px-4 py-2 flex items-center gap-2.5 shadow-lg">
+            <div 
+              className="bg-wine border border-gummy/40 rounded-xl px-4 py-2 flex items-center gap-2.5 shadow-lg cursor-help transition-all hover:border-gummy"
+              title={dbStatus?.postgresMode ? 'Успешное подключение к PostgreSQL!' : `Ошибка подключения: ${dbStatus?.error || 'неизвестная ошибка'}`}
+            >
               <span className="relative flex h-2.5 w-2.5">
                 <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${dbStatus?.postgresMode ? 'bg-green-400' : 'bg-orange-400'}`}></span>
                 <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${dbStatus?.postgresMode ? 'bg-green-500' : 'bg-orange-500'}`}></span>

@@ -36,9 +36,12 @@ pool.on('error', (err) => {
 export const db = drizzle(pool, { schema });
 export { pool };
 
+export let lastConnectionError: string | null = null;
+
 export async function testDbConnection(): Promise<boolean> {
   if (!databaseUrl && !process.env.SQL_HOST) {
-    console.log('No PostgreSQL configuration found in environment variables.');
+    lastConnectionError = 'No PostgreSQL configuration found in environment variables (DATABASE_URL is empty).';
+    console.log(lastConnectionError);
     return false;
   }
   try {
@@ -46,9 +49,12 @@ export async function testDbConnection(): Promise<boolean> {
     await client.query('SELECT 1');
     client.release();
     console.log('PostgreSQL connection successful!');
+    lastConnectionError = null;
     return true;
   } catch (err: any) {
-    console.warn('PostgreSQL connection test failed:', err?.message || err);
+    const errMsg = err?.message || String(err);
+    lastConnectionError = errMsg;
+    console.warn('PostgreSQL connection test failed:', errMsg);
     return false;
   }
 }

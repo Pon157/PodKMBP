@@ -1,4 +1,4 @@
-import { db, testDbConnection } from './index.ts';
+import { db, testDbConnection, lastConnectionError } from './index.ts';
 import { admins, takes, surveys, prices, unions } from './schema.ts';
 import { eq, or, and } from 'drizzle-orm';
 import fs from 'fs';
@@ -126,6 +126,10 @@ export const Storage = {
 
   isPostgresMode() {
     return isDbConnected;
+  },
+
+  getDbError() {
+    return lastConnectionError;
   },
 
   async seedIfNeeded() {

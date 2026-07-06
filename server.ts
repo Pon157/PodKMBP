@@ -65,7 +65,8 @@ app.post('/api/active-ping', (req, res) => {
 app.get('/api/db-status', (req, res) => {
   res.json({
     postgresMode: Storage.isPostgresMode(),
-    status: Storage.isPostgresMode() ? 'Connected to PostgreSQL' : 'Fallback Local JSON'
+    status: Storage.isPostgresMode() ? 'Connected to PostgreSQL' : 'Fallback Local JSON',
+    error: Storage.getDbError()
   });
 });
 
