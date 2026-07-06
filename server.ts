@@ -117,7 +117,7 @@ app.post('/api/auth/tg-login-init', async (req, res) => {
     await Storage.createTgSession(code);
     res.json({
       code,
-      botUsername: process.env.TELEGRAM_BOT_USERNAME || 'MascotFeedbackBot'
+      botUsername: process.env.TELEGRAM_BOT_USERNAME || 'verifsitepodsl_bot'
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
