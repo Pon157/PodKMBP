@@ -649,7 +649,7 @@ const SocialsPage: React.FC = () => {
           <Sparkles className="mx-auto text-gummy mb-3 animate-pulse" size={28} />
           <h2 className="font-display font-bold text-white text-xl md:text-2xl mb-2">НАШ ЧАТ</h2>
           <p className="text-xs text-gummy/70 mb-6 leading-relaxed">
-            Присоединяйтесь к теплому сообществу единомышленников, делитесь идеями и общайтесь с администрацией!
+            Присоединяйтесь к теплому сообществу!
           </p>
           
           <div className="flex flex-col gap-3">
