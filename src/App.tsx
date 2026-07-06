@@ -35,6 +35,26 @@ export default function App() {
   // Auth admin state
   const [currentAdmin, setCurrentAdmin] = useState<Admin | null>(null);
 
+  // Telegram User Session State
+  const [tgUser, setTgUser] = useState<{ tgId: string; username: string | null; firstName: string | null; avatarUrl?: string | null } | null>(() => {
+    const saved = localStorage.getItem('wine_tg_user');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        localStorage.removeItem('wine_tg_user');
+      }
+    }
+    return null;
+  });
+
+  const handleLogoutTg = () => {
+    if (window.confirm('Вы действительно хотите выйти из аккаунта Telegram?')) {
+      setTgUser(null);
+      localStorage.removeItem('wine_tg_user');
+    }
+  };
+
   const refreshAdmins = async () => {
     try {
       const res = await fetch('/api/admins');
@@ -115,7 +135,7 @@ export default function App() {
       <div className="min-h-screen bg-wine text-gummy relative selection:bg-gummy selection:text-wine overflow-x-hidden font-sans">
         
         {/* Decorative elements present globally on non-panel pages */}
-        <GlobalDecorations />
+        <GlobalDecorations tgUser={tgUser} onLogoutTg={handleLogoutTg} />
 
         <Routes>
           <Route path="/" element={<StartPage />} />
@@ -126,7 +146,7 @@ export default function App() {
           <Route path="/admin" element={<AdminsOverviewPage admins={admins} />} />
           <Route path="/admins" element={<AdminsOverviewPage admins={admins} />} />
           <Route path="/rules" element={<RulesPage />} />
-          <Route path="/take" element={<TakeSubmissionPage admins={admins} />} />
+          <Route path="/take" element={<TakeSubmissionPage admins={admins} tgUser={tgUser} setTgUser={setTgUser} />} />
           <Route path="/anketa" element={<AnketaPage />} />
           <Route path="/survey" element={<SurveyFormPage />} />
           <Route path="/unions" element={<UnionsPage unions={unions} />} />
@@ -154,13 +174,96 @@ export default function App() {
 }
 
 // Global ambient animated float elements
-const GlobalDecorations: React.FC = () => {
+interface GlobalDecorationsProps {
+  tgUser: { tgId: string; username: string | null; firstName: string | null; avatarUrl?: string | null } | null;
+  onLogoutTg: () => void;
+}
+const GlobalDecorations: React.FC<GlobalDecorationsProps> = ({ tgUser, onLogoutTg }) => {
   const { pathname } = useLocation();
   // Do not show distracting background noise in the admin panel
   if (pathname.includes('admin-panel')) return null;
 
   return (
     <>
+      {/* Telegram Profile Widget */}
+      {tgUser && (
+        <div className="fixed top-4 left-4 z-50 group">
+          {/* Container */}
+          <div className="flex items-center gap-3 bg-wine-dark/95 hover:bg-wine-dark border border-gummy/40 rounded-full py-1.5 pl-1.5 pr-4 shadow-xl transition-all duration-300 cursor-pointer backdrop-blur-md">
+            
+            {/* Avatar or Placeholder */}
+            <div className="relative w-8 h-8 rounded-full overflow-hidden border border-gummy bg-wine/80 flex items-center justify-center text-xs font-bold text-gummy">
+              {tgUser.avatarUrl ? (
+                <img 
+                  src={tgUser.avatarUrl} 
+                  alt={tgUser.firstName || 'TG Avatar'} 
+                  className="w-full h-full object-cover" 
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : null}
+              <span>{tgUser.firstName ? tgUser.firstName.substring(0, 1).toUpperCase() : 'TG'}</span>
+            </div>
+
+            {/* User details snippet */}
+            <div className="flex flex-col">
+              <span className="text-white font-semibold text-[11px] leading-tight max-w-[120px] truncate">
+                {tgUser.firstName || tgUser.username || 'User'}
+              </span>
+              <span className="text-gummy/60 text-[9px] leading-none">
+                {tgUser.username ? `@${tgUser.username}` : `id: ${tgUser.tgId}`}
+              </span>
+            </div>
+          </div>
+
+          {/* Hover Info Panel / Tooltip */}
+          <div className="absolute top-full left-0 mt-2 w-64 bg-wine-dark/95 border-2 border-gummy rounded-2xl p-4 shadow-2xl opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto transition-all duration-200 origin-top-left z-[100] backdrop-blur-md">
+            <div className="flex items-center gap-3 mb-3 border-b border-gummy/20 pb-3">
+              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gummy bg-wine flex items-center justify-center text-sm font-bold text-gummy">
+                {tgUser.avatarUrl ? (
+                  <img 
+                    src={tgUser.avatarUrl} 
+                    alt={tgUser.firstName || 'TG Avatar'} 
+                    className="w-full h-full object-cover" 
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                ) : null}
+                <span>{tgUser.firstName ? tgUser.firstName.substring(0, 1).toUpperCase() : 'TG'}</span>
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-white font-bold text-xs truncate">
+                  {tgUser.firstName || 'Пользователь'}
+                </span>
+                {tgUser.username && (
+                  <span className="text-gummy text-[11px] truncate">
+                    @{tgUser.username}
+                  </span>
+                )}
+                <span className="text-gummy/50 text-[10px] font-mono mt-0.5">
+                  ID: {tgUser.tgId}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5 text-[10px] text-gummy/80 leading-relaxed mb-3">
+              <p>🤖 Вы авторизованы через Telegram и можете отправлять тейки и идеи.</p>
+            </div>
+
+            <button
+              onClick={onLogoutTg}
+              className="w-full py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 text-[10px] font-bold transition-all"
+            >
+              Выйти из Telegram
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
         <div className="absolute top-1/4 left-1/10 w-96 h-96 bg-gummy/5 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 right-1/10 w-[500px] h-[500px] bg-gummy/5 rounded-full blur-3xl" />
@@ -797,8 +900,10 @@ const RulesPage: React.FC = () => {
 // 7. TAKE SUBMISSION PAGE
 interface TakeSubmissionPageProps {
   admins: Admin[];
+  tgUser: { tgId: string; username: string | null; firstName: string | null; avatarUrl?: string | null } | null;
+  setTgUser: (user: { tgId: string; username: string | null; firstName: string | null; avatarUrl?: string | null } | null) => void;
 }
-const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initialAdmins }) => {
+const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initialAdmins, tgUser, setTgUser }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -811,19 +916,6 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-
-  // Telegram User Auth States
-  const [tgUser, setTgUser] = useState<{ tgId: string; username: string | null; firstName: string | null } | null>(() => {
-    const saved = localStorage.getItem('wine_tg_user');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        localStorage.removeItem('wine_tg_user');
-      }
-    }
-    return null;
-  });
 
   const [authCode, setAuthCode] = useState<string | null>(null);
   const [botUsername, setBotUsername] = useState<string>('MascotFeedbackBot');
@@ -896,7 +988,8 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
             const user = {
               tgId: session.tgId,
               username: session.username,
-              firstName: session.firstName
+              firstName: session.firstName,
+              avatarUrl: session.avatarUrl
             };
             setTgUser(user);
             localStorage.setItem('wine_tg_user', JSON.stringify(user));

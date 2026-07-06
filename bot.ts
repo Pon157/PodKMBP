@@ -40,7 +40,21 @@ bot.start(async (ctx) => {
     try {
       const session = await Storage.getTgSession(code);
       if (session) {
-        await Storage.authenticateTgSession(code, String(user.id), user.username || null, user.first_name || null);
+        let avatarUrl: string | null = null;
+        try {
+          const photos = await ctx.telegram.getUserProfilePhotos(user.id, 0, 1);
+          if (photos && photos.total_count > 0 && photos.photos[0] && photos.photos[0].length > 0) {
+            const fileId = photos.photos[0][0].file_id;
+            const file = await ctx.telegram.getFile(fileId);
+            if (file && file.file_path) {
+              avatarUrl = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+            }
+          }
+        } catch (e) {
+          console.error('Failed to fetch user avatar from Telegram:', e);
+        }
+
+        await Storage.authenticateTgSession(code, String(user.id), user.username || null, user.first_name || null, avatarUrl);
         await ctx.reply(
           `🎉 *Вы успешно вошли на платформу в качестве ${user.first_name || 'пользователя'}!*\n\n` +
           `Теперь вернитесь на сайт — вы будете автоматически авторизованы и сможете оставлять тейки/идеи, а также отслеживать ответы.`,

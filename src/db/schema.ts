@@ -68,6 +68,7 @@ export const tgSessions = pgTable('tg_sessions', {
   tgId: text('tg_id'),
   username: text('username'),
   firstName: text('first_name'),
+  avatarUrl: text('avatar_url'),
   status: text('status').notNull().default('pending'), // 'pending' | 'authenticated'
   createdAt: text('created_at').notNull(),
 });

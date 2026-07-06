@@ -421,6 +421,7 @@ export const Storage = {
       tgId: null,
       username: null,
       firstName: null,
+      avatarUrl: null,
       status: 'pending',
       createdAt: new Date().toISOString()
     };
@@ -444,11 +445,12 @@ export const Storage = {
     }
   },
 
-  async authenticateTgSession(code: string, tgId: string, username: string | null, firstName: string | null) {
+  async authenticateTgSession(code: string, tgId: string, username: string | null, firstName: string | null, avatarUrl: string | null = null) {
     const updateData = {
       tgId,
       username,
       firstName,
+      avatarUrl,
       status: 'authenticated'
     };
     if (isDbConnected) {
