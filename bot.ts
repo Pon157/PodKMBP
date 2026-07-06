@@ -266,17 +266,24 @@ bot.on('message', async (ctx) => {
           (mediaUrls.length > 0 ? `🖼️ <i>Прикреплены новые файлы (${mediaUrls.length} шт.)</i>\n` : '') +
           `\n🔗 <i>Ответьте через админ-панель на сайте!</i>`;
         
-        // Use standard telegram notifier
-        const token = process.env.TELEGRAM_BOT_TOKEN;
-        const notifyUrl = `https://api.telegram.org/bot${token}/sendMessage`;
-        await fetch(notifyUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: targetAdmin.tgId,
-            text: adminNotification,
-            parse_mode: 'HTML',
-          }),
+        // Notify the target admin (the one who claimed it, or the default target/owner)
+      const targetAdminId = take.takenBy || take.targetAdminId;
+      if (targetAdminId && targetAdminId !== 'all') {
+        const allAdmins = await Storage.getAdmins();
+        const targetAdmin = allAdmins.find(a => a.id === targetAdminId);
+      
+      if (targetAdmin && targetAdmin.tgId) {
+        const adminNotification = 
+          `<tg-emoji emoji-id="5443038326535759644">💬</tg-emoji> <b>СООБЩЕНИЕ ИЗ ТЕЛЕГРАМ-БОТА</b>\n\n` +
+          `<b>В чате тейка:</b> <i>"${take.content.substring(0, 30)}..."</i>\n` +
+          `<b>Пользователь:</b> ${ctx.from.first_name}\n` +
+          `<b>Сообщение:</b> ${textContent}\n` +
+          (mediaUrls.length > 0 ? `🖼️ <i>Прикреплены новые файлы (${mediaUrls.length} шт.)</i>\n` : '') +
+          `\n🔗 <i>Ответьте через админ-панель на сайте!</i>`;
+        
+        // Используем встроенный метод Telegraf — он автоматически пойдет через прокси
+        await bot.telegram.sendMessage(targetAdmin.tgId, adminNotification, {
+          parse_mode: 'HTML',
         });
       }
     }
