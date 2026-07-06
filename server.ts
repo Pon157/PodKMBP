@@ -5,7 +5,7 @@ import { createServer as createViteServer } from 'vite';
 import { Storage } from './src/db/storage.ts';
 
 const app = express();
-const PORT = 6776;
+const PORT = 3000;
 
 // Setup uploads folder
 const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -21,6 +21,7 @@ app.use(express.json({ limit: '10mb' }));
 
 // Active Users State
 const activeUsers = new Map<string, number>();
+const activeCaptchas = new Map<string, { answer: string; expiresAt: number }>();
 
 function getActiveCount(): number {
   const now = Date.now();
@@ -78,6 +79,63 @@ app.get('/api/db-status', (req, res) => {
     status: Storage.isPostgresMode() ? 'Connected to PostgreSQL' : 'Fallback Local JSON',
     error: Storage.getDbError()
   });
+});
+
+// Captcha Generator Endpoint
+app.get('/api/captcha', (req, res) => {
+  const num1 = Math.floor(Math.random() * 20) + 1;
+  const num2 = Math.floor(Math.random() * 20) + 1;
+  const ops = ['+', '-'];
+  const op = ops[Math.floor(Math.random() * ops.length)];
+  const ans = op === '+' ? num1 + num2 : num1 - num2;
+
+  const captchaId = 'cap_' + Math.random().toString(36).substr(2, 9);
+  activeCaptchas.set(captchaId, {
+    answer: String(ans),
+    expiresAt: Date.now() + 300000 // 5 minutes
+  });
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40" viewBox="0 0 120 40">
+    <rect width="100%" height="100%" fill="#2c001e" rx="6"/>
+    <path d="M 10 10 L 110 30" stroke="#ff3e7e" stroke-width="1" opacity="0.3"/>
+    <path d="M 10 30 L 110 10" stroke="#ff3e7e" stroke-width="1" opacity="0.3"/>
+    <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="#facc15" font-family="monospace" font-size="18" font-weight="bold" letter-spacing="2">
+      ${num1} ${op} ${num2} = ?
+    </text>
+  </svg>`;
+
+  res.json({ captchaId, svg });
+});
+
+// TG Login Init
+app.post('/api/auth/tg-login-init', async (req, res) => {
+  try {
+    const code = Math.random().toString(36).substr(2, 8).toUpperCase();
+    await Storage.createTgSession(code);
+    res.json({
+      code,
+      botUsername: process.env.TELEGRAM_BOT_USERNAME || 'MascotFeedbackBot'
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// TG Login Status Poll
+app.get('/api/auth/tg-login-status', async (req, res) => {
+  try {
+    const { code } = req.query;
+    if (!code) {
+      return res.status(400).json({ error: 'Код сессии обязателен' });
+    }
+    const session = await Storage.getTgSession(String(code));
+    if (!session) {
+      return res.status(404).json({ error: 'Сессия не найдена или устарела' });
+    }
+    res.json(session);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // File Upload
@@ -239,10 +297,23 @@ app.delete('/api/admins/:id', async (req, res) => {
 // Submit a Take
 app.post('/api/takes', async (req, res) => {
   try {
-    const { type, content, imageUrl, targetAdminId } = req.body;
+    const { type, content, imageUrl, targetAdminId, userTgId, userTgUsername, userTgName, captchaId, captchaAnswer } = req.body;
     if (!content) {
       return res.status(400).json({ error: 'Текст тейка обязателен' });
     }
+
+    if (!captchaId || !captchaAnswer) {
+      return res.status(400).json({ error: 'Пройдите капчу перед отправкой!' });
+    }
+    const stored = activeCaptchas.get(captchaId);
+    if (!stored || stored.answer !== captchaAnswer.trim()) {
+      return res.status(400).json({ error: 'Неверный ответ капчи или время вышло' });
+    }
+    if (stored.expiresAt < Date.now()) {
+      activeCaptchas.delete(captchaId);
+      return res.status(400).json({ error: 'Время жизни капчи истекло' });
+    }
+    activeCaptchas.delete(captchaId);
 
     const newTake = {
       id: 'take_' + Math.random().toString(36).substr(2, 9),
@@ -252,7 +323,10 @@ app.post('/api/takes', async (req, res) => {
       targetAdminId: targetAdminId || 'all',
       status: 'pending',
       createdAt: new Date().toISOString(),
-      dialogue: []
+      dialogue: [],
+      userTgId: userTgId || null,
+      userTgUsername: userTgUsername || null,
+      userTgName: userTgName || null
     };
 
     await Storage.createTake(newTake);
@@ -396,6 +470,17 @@ app.post('/api/takes/:id/dialogue', async (req, res) => {
       }
     }
 
+    // Notify user on Telegram if admin sends a message
+    if (sender === 'admin') {
+      if (take.userTgId) {
+        const textMsg = `<b>💬 НОВЫЙ ОТВЕТ ОТ АДМИНИСТРАТОРА!</b>\n\n` +
+          `В чате вашего тейка:\n` +
+          `<i>"${text}"</i>\n\n` +
+          `🤖 Вы можете ответить на это сообщение прямо здесь в боте!`;
+        await notifyTelegram(take.userTgId, textMsg);
+      }
+    }
+
     res.json(updated);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -405,11 +490,24 @@ app.post('/api/takes/:id/dialogue', async (req, res) => {
 // Submit a Survey (Anketa)
 app.post('/api/surveys', async (req, res) => {
   try {
-    const { source, sphere, age, roleInterest, helpDescription } = req.body;
+    const { source, sphere, age, roleInterest, helpDescription, captchaId, captchaAnswer } = req.body;
 
     if (!source || !sphere || !age || !roleInterest || !helpDescription) {
       return res.status(400).json({ error: 'Все поля анкеты обязательны' });
     }
+
+    if (!captchaId || !captchaAnswer) {
+      return res.status(400).json({ error: 'Пройдите капчу перед отправкой!' });
+    }
+    const stored = activeCaptchas.get(captchaId);
+    if (!stored || stored.answer !== captchaAnswer.trim()) {
+      return res.status(400).json({ error: 'Неверный ответ капчи или время вышло' });
+    }
+    if (stored.expiresAt < Date.now()) {
+      activeCaptchas.delete(captchaId);
+      return res.status(400).json({ error: 'Время жизни капчи истекло' });
+    }
+    activeCaptchas.delete(captchaId);
 
     const newSurvey = {
       id: 'survey_' + Math.random().toString(36).substr(2, 9),

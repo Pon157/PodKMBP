@@ -1,5 +1,5 @@
 import { db, testDbConnection, lastConnectionError } from './index.ts';
-import { admins, takes, surveys, prices, unions } from './schema.ts';
+import { admins, takes, surveys, prices, unions, tgSessions, tgUserStates } from './schema.ts';
 import { eq, or, and } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
@@ -85,6 +85,8 @@ function readJsonDb(): any {
       if (!parsed.surveys) parsed.surveys = [...defaultSurveys];
       if (!parsed.prices) parsed.prices = [...defaultPrices];
       if (!parsed.unions) parsed.unions = [...defaultUnions];
+      if (!parsed.tgSessions) parsed.tgSessions = [];
+      if (!parsed.tgUserStates) parsed.tgUserStates = [];
       return parsed;
     }
   } catch (err) {
@@ -95,7 +97,9 @@ function readJsonDb(): any {
     takes: [...defaultTakes],
     surveys: [...defaultSurveys],
     prices: [...defaultPrices],
-    unions: [...defaultUnions]
+    unions: [...defaultUnions],
+    tgSessions: [],
+    tgUserStates: []
   };
 }
 
@@ -407,6 +411,103 @@ export const Storage = {
         return true;
       }
       return false;
+    }
+  },
+
+  // --- Telegram Sessions ---
+  async createTgSession(code: string) {
+    const sessionData = {
+      code,
+      tgId: null,
+      username: null,
+      firstName: null,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+    if (isDbConnected) {
+      await db.insert(tgSessions).values(sessionData);
+      return sessionData;
+    } else {
+      const data = readJsonDb();
+      data.tgSessions.push(sessionData);
+      writeJsonDb(data);
+      return sessionData;
+    }
+  },
+
+  async getTgSession(code: string) {
+    if (isDbConnected) {
+      const result = await db.select().from(tgSessions).where(eq(tgSessions.code, code)).limit(1);
+      return result[0] || null;
+    } else {
+      return readJsonDb().tgSessions.find((s: any) => s.code === code) || null;
+    }
+  },
+
+  async authenticateTgSession(code: string, tgId: string, username: string | null, firstName: string | null) {
+    const updateData = {
+      tgId,
+      username,
+      firstName,
+      status: 'authenticated'
+    };
+    if (isDbConnected) {
+      await db.update(tgSessions).set(updateData).where(eq(tgSessions.code, code));
+      return await this.getTgSession(code);
+    } else {
+      const data = readJsonDb();
+      const idx = data.tgSessions.findIndex((s: any) => s.code === code);
+      if (idx !== -1) {
+        data.tgSessions[idx] = { ...data.tgSessions[idx], ...updateData };
+        writeJsonDb(data);
+        return data.tgSessions[idx];
+      }
+      return null;
+    }
+  },
+
+  // --- Telegram User States ---
+  async getTgUserState(tgId: string) {
+    if (isDbConnected) {
+      const result = await db.select().from(tgUserStates).where(eq(tgUserStates.tgId, tgId)).limit(1);
+      return result[0] || null;
+    } else {
+      return readJsonDb().tgUserStates.find((us: any) => us.tgId === tgId) || null;
+    }
+  },
+
+  async setTgUserState(tgId: string, activeTakeId: string | null) {
+    const stateData = {
+      tgId,
+      activeTakeId,
+      updatedAt: new Date().toISOString()
+    };
+    if (isDbConnected) {
+      const existing = await this.getTgUserState(tgId);
+      if (existing) {
+        await db.update(tgUserStates).set({ activeTakeId, updatedAt: stateData.updatedAt }).where(eq(tgUserStates.tgId, tgId));
+      } else {
+        await db.insert(tgUserStates).values(stateData);
+      }
+      return stateData;
+    } else {
+      const data = readJsonDb();
+      const idx = data.tgUserStates.findIndex((us: any) => us.tgId === tgId);
+      if (idx !== -1) {
+        data.tgUserStates[idx] = { ...data.tgUserStates[idx], activeTakeId, updatedAt: stateData.updatedAt };
+      } else {
+        data.tgUserStates.push(stateData);
+      }
+      writeJsonDb(data);
+      return stateData;
+    }
+  },
+
+  async getUserTakes(tgId: string) {
+    if (isDbConnected) {
+      return await db.select().from(takes).where(eq(takes.userTgId, tgId));
+    } else {
+      return readJsonDb().takes.filter((t: any) => t.userTgId === tgId);
     }
   }
 };

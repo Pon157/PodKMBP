@@ -28,7 +28,11 @@ export const takes = pgTable('takes', {
     sender: 'user' | 'admin';
     text: string;
     createdAt: string;
+    mediaUrls?: string[];
   }>>().default([]),
+  userTgId: text('user_tg_id'),
+  userTgUsername: text('user_tg_username'),
+  userTgName: text('user_tg_name'),
 });
 
 // 3. Surveys Table
@@ -56,4 +60,21 @@ export const unions = pgTable('unions', {
   name: text('name').notNull(),
   link: text('link').notNull(),
   description: text('description').notNull(),
+});
+
+// 6. Telegram Sessions Table
+export const tgSessions = pgTable('tg_sessions', {
+  code: text('code').primaryKey(),
+  tgId: text('tg_id'),
+  username: text('username'),
+  firstName: text('first_name'),
+  status: text('status').notNull().default('pending'), // 'pending' | 'authenticated'
+  createdAt: text('created_at').notNull(),
+});
+
+// 7. Telegram User States Table
+export const tgUserStates = pgTable('tg_user_states', {
+  tgId: text('tg_id').primaryKey(),
+  activeTakeId: text('active_take_id'),
+  updatedAt: text('updated_at').notNull(),
 });

@@ -49,12 +49,14 @@ interface AdminPanelProps {
   currentAdmin: Admin;
   onLogout: () => void;
   activeUsersCount: number;
+  onRefreshAdmins?: () => void;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({
   currentAdmin,
   onLogout,
   activeUsersCount,
+  onRefreshAdmins,
 }) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'general_takes' | 'personal_takes' | 'surveys' | 'manage_admins' | 'manage_prices'>('profile');
   
@@ -116,6 +118,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       const res = await fetch('/api/admins');
       const data = await res.json();
       setAdmins(data);
+      onRefreshAdmins?.();
     } catch (err) {
       console.error('Failed to fetch admins', err);
     }

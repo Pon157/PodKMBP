@@ -11,7 +11,7 @@ import { AdminPanel } from './components/AdminPanel';
 import { 
   Sparkles, ExternalLink, MessageSquare, AlertCircle, 
   ChevronRight, Heart, Send, Check, Shield, HelpCircle, 
-  MapPin, Eye, Play, Plus, BookOpen, Volume2, Globe 
+  MapPin, Eye, Play, Plus, BookOpen, Volume2, Globe, Trash2, Lock
 } from 'lucide-react';
 
 // Generates or retrieves a unique client ID for online counters
@@ -34,6 +34,17 @@ export default function App() {
   
   // Auth admin state
   const [currentAdmin, setCurrentAdmin] = useState<Admin | null>(null);
+
+  const refreshAdmins = async () => {
+    try {
+      const res = await fetch('/api/admins');
+      if (res.ok) {
+        setAdmins(await res.json());
+      }
+    } catch (err) {
+      console.error('Failed to refresh admins list', err);
+    }
+  };
 
   useEffect(() => {
     // Read auth session from localStorage
@@ -129,6 +140,7 @@ export default function App() {
                   currentAdmin={currentAdmin} 
                   onLogout={handleAdminLogout} 
                   activeUsersCount={activeUsersCount} 
+                  onRefreshAdmins={refreshAdmins}
                 />
               ) : (
                 <AdminLoginPage onLogin={handleAdminLogin} />
@@ -793,14 +805,49 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
   const [admins, setAdmins] = useState<Admin[]>(initialAdmins);
   const [type, setType] = useState<'take' | 'idea'>('take');
   const [content, setContent] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+  const [mediaList, setMediaList] = useState<string[]>([]);
   const [targetAdminId, setTargetAdminId] = useState('all');
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Fetch fresh admins on mount
+  // Telegram User Auth States
+  const [tgUser, setTgUser] = useState<{ tgId: string; username: string | null; firstName: string | null } | null>(() => {
+    const saved = localStorage.getItem('wine_tg_user');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        localStorage.removeItem('wine_tg_user');
+      }
+    }
+    return null;
+  });
+
+  const [authCode, setAuthCode] = useState<string | null>(null);
+  const [botUsername, setBotUsername] = useState<string>('MascotFeedbackBot');
+  const [authLoading, setAuthLoading] = useState(false);
+
+  // Math Captcha States
+  const [captcha, setCaptcha] = useState<{ captchaId: string; svg: string } | null>(null);
+  const [captchaAnswer, setCaptchaAnswer] = useState('');
+
+  // Fetch fresh CAPTCHA
+  const fetchCaptcha = async () => {
+    try {
+      const res = await fetch('/api/captcha');
+      if (res.ok) {
+        const data = await res.json();
+        setCaptcha(data);
+        setCaptchaAnswer('');
+      }
+    } catch (err) {
+      console.error('Failed to load captcha', err);
+    }
+  };
+
+  // Fetch fresh admins & CAPTCHA on mount
   useEffect(() => {
     const fetchAdmins = async () => {
       try {
@@ -814,7 +861,64 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
       }
     };
     fetchAdmins();
+    fetchCaptcha();
   }, []);
+
+  // Handle Telegram login initiation
+  const handleInitTgLogin = async () => {
+    setAuthLoading(true);
+    setErrorMsg('');
+    try {
+      const res = await fetch('/api/auth/tg-login-init', { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        setAuthCode(data.code);
+        setBotUsername(data.botUsername);
+      } else {
+        setErrorMsg('Не удалось инициировать вход. Пожалуйста, обновите страницу.');
+      }
+    } catch (err) {
+      setErrorMsg('Ошибка соединения с сервером при попытке входа.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  // Poll Telegram login status
+  useEffect(() => {
+    if (!authCode) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/auth/tg-login-status?code=${authCode}`);
+        if (res.ok) {
+          const session = await res.json();
+          if (session.status === 'authenticated') {
+            const user = {
+              tgId: session.tgId,
+              username: session.username,
+              firstName: session.firstName
+            };
+            setTgUser(user);
+            localStorage.setItem('wine_tg_user', JSON.stringify(user));
+            setAuthCode(null);
+            clearInterval(interval);
+          }
+        }
+      } catch (err) {
+        console.error('Failed checking authentication session status', err);
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [authCode]);
+
+  // Handle Logout
+  const handleLogoutTg = () => {
+    if (window.confirm('Вы действительно хотите выйти из аккаунта Telegram?')) {
+      setTgUser(null);
+      localStorage.removeItem('wine_tg_user');
+      setAuthCode(null);
+    }
+  };
 
   // Handle file uploads directly
   const handleFileUpload = async (file: File): Promise<string> => {
@@ -856,8 +960,16 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!tgUser) {
+      setErrorMsg('Для отправки тейка необходимо войти через Telegram.');
+      return;
+    }
     if (!content.trim()) {
       setErrorMsg('Пожалуйста, введите текст вашего тейка.');
+      return;
+    }
+    if (!captchaAnswer.trim()) {
+      setErrorMsg('Пожалуйста, решите защитный пример (капчу).');
       return;
     }
 
@@ -871,22 +983,31 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
         body: JSON.stringify({
           type,
           content,
-          imageUrl,
+          imageUrl: mediaList.length > 0 ? JSON.stringify(mediaList) : null,
           targetAdminId,
+          userTgId: tgUser.tgId,
+          userTgUsername: tgUser.username,
+          userTgName: tgUser.firstName,
+          captchaId: captcha?.captchaId,
+          captchaAnswer,
         }),
       });
 
       if (res.ok) {
         setSuccess(true);
         setContent('');
-        setImageUrl('');
+        setMediaList([]);
         setTargetAdminId('all');
+        setCaptchaAnswer('');
+        fetchCaptcha();
       } else {
         const data = await res.json();
         setErrorMsg(data.error || 'Ошибка отправки тейка');
+        fetchCaptcha();
       }
     } catch (err) {
       setErrorMsg('Произошла ошибка при соединении с сервером');
+      fetchCaptcha();
     } finally {
       setLoading(false);
     }
@@ -898,9 +1019,12 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
         
         {/* LEFT COLUMN: MASCOT (cols 4) */}
         <div className="md:col-span-4 flex flex-col items-center gap-3">
-          <MascotPlaceholder pose="thinking" size={200} />
+          <MascotPlaceholder pose={tgUser ? "thinking" : "neutral"} size={200} />
           <div className="bg-wine-dark/40 border border-gummy/20 rounded-xl p-3 text-center text-xs max-w-xs text-gummy/80 leading-relaxed">
-            Поделитесь важной сплетней или классной идеей! Ваша анонимность полностью защищена.
+            {tgUser 
+              ? "Поделитесь важной сплетней или классной идеей! Ваша анонимность полностью защищена."
+              : "Для защиты от спама и для ведения чата с админом, пожалуйста, авторизуйтесь через Telegram!"
+            }
           </div>
         </div>
 
@@ -928,7 +1052,7 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
               </div>
               <h3 className="font-display font-bold text-xl text-white">Успешно отправлено!</h3>
               <p className="text-sm text-gummy/80 max-w-sm leading-relaxed">
-                Ваш тейк сохранен в системе и передан администраторам. Если потребуется, они начнут анонимное общение с вами!
+                Ваш тейк сохранен в системе и передан администраторам. Вы получите анонимные ответы прямо в вашем Telegram-боте!
               </p>
               <button
                 id="take-success-new-btn"
@@ -938,9 +1062,82 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
                 Отправить ещё один
               </button>
             </motion.div>
+          ) : !tgUser ? (
+            /* TELEGRAM BOT AUTHENTICATION CARD */
+            <div className="text-center py-6 flex flex-col items-center gap-5">
+              <div className="w-14 h-14 rounded-full bg-gummy/20 text-gummy flex items-center justify-center border-2 border-gummy shadow-md">
+                <Lock size={26} strokeWidth={2.5} />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-lg text-white mb-1.5">Вход через Telegram</h3>
+                <p className="text-xs text-gummy/70 max-w-md leading-relaxed mx-auto">
+                  Авторизация привязывает ваши будущие тейки к Telegram ID, чтобы администраторы могли ответить вам напрямую в чат-бот. При этом ваша личность на сайте остается на 100% анонимной!
+                </p>
+              </div>
+
+              {errorMsg && (
+                <div className="bg-red-950/60 border border-red-500/50 p-3.5 rounded-xl text-xs text-red-300 flex items-center gap-2 max-w-md w-full">
+                  <AlertCircle size={15} /> {errorMsg}
+                </div>
+              )}
+
+              {authCode ? (
+                <div className="bg-wine-dark/80 border border-gummy/30 rounded-2xl p-5 flex flex-col gap-4 items-center max-w-md w-full shadow-inner">
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="text-[10px] uppercase font-mono tracking-widest text-gummy/50 font-bold">Уникальный токен входа</span>
+                    <span className="text-lg font-mono font-bold text-white bg-wine/80 px-4 py-1.5 rounded-lg border border-gummy/10">{authCode}</span>
+                  </div>
+
+                  <a
+                    href={`https://t.me/${botUsername}?start=login_${authCode}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full bg-gummy hover:bg-white text-wine font-bold text-sm py-3 rounded-xl transition-all shadow flex items-center justify-center gap-1.5"
+                  >
+                    🚀 Запустить бота в Telegram
+                  </a>
+
+                  <div className="flex items-center gap-2.5 mt-1 text-gummy/60">
+                    <div className="w-4 h-4 rounded-full border-2 border-t-transparent border-gummy animate-spin" />
+                    <span className="text-xs leading-none">Ожидание подтверждения от бота...</span>
+                  </div>
+
+                  <button
+                    onClick={() => setAuthCode(null)}
+                    className="text-xs text-gummy/50 hover:text-gummy underline font-mono mt-1"
+                  >
+                    Отменить вход
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleInitTgLogin}
+                  disabled={authLoading}
+                  className="bg-gummy hover:bg-white text-wine font-bold text-sm px-8 py-3.5 rounded-2xl transition-all shadow-lg flex items-center gap-2 hover:scale-105"
+                >
+                  {authLoading ? 'Генерация сессии...' : 'Войти через Telegram'} <Sparkles size={16} />
+                </button>
+              )}
+            </div>
           ) : (
+            /* STANDARD TAKE SUBMISSION FORM FOR LOGGED IN USERS */
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               
+              {/* Logged in User Indicator */}
+              <div className="bg-gummy/10 border border-gummy/20 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs text-gummy">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
+                  <span>Вы вошли как: <b>{tgUser.firstName}</b> {tgUser.username ? `(@${tgUser.username})` : ''}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLogoutTg}
+                  className="text-[10px] text-red-400 hover:text-red-300 font-bold uppercase tracking-wider underline cursor-pointer"
+                >
+                  Выйти
+                </button>
+              </div>
+
               {errorMsg && (
                 <div className="bg-red-950/60 border border-red-500/50 p-3.5 rounded-xl text-xs text-red-300 flex items-center gap-2">
                   <AlertCircle size={15} /> {errorMsg}
@@ -1008,40 +1205,105 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
                 />
               </div>
 
-              {/* Optional Image Attachment */}
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold uppercase text-gummy/70">Прикрепить картинку / медиа</label>
+              {/* Multiple Media Attachments */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold uppercase text-gummy/70">Прикрепить фото / медиа (макс. 5 шт. до 5МБ каждая)</label>
+                
                 <div className="flex gap-2 items-center">
-                  <input
-                    id="take-image-url"
-                    type="text"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="Вставьте ссылку или выберите файл"
-                    className="flex-1 bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white text-xs outline-none focus:border-gummy"
-                  />
+                  <div className="flex-1 bg-wine/30 border border-gummy/20 rounded-xl px-4 py-2.5 text-gummy/50 text-xs">
+                    Загружено: {mediaList.length} / 5 файлов
+                  </div>
                   <label className="bg-gummy hover:bg-white text-wine font-bold px-4 py-2.5 rounded-xl cursor-pointer transition-all text-xs flex items-center justify-center shrink-0">
-                    Загрузить 🖼️
+                    Выбрать файл 🖼️
                     <input
                       type="file"
+                      multiple
                       accept="image/*,audio/*,video/*"
                       onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        try {
-                          setErrorMsg('Загрузка файла...');
-                          const url = await handleFileUpload(file);
-                          setImageUrl(url);
-                          setErrorMsg('');
-                        } catch (err: any) {
-                          setErrorMsg(err.message || 'Ошибка загрузки файла');
+                        const files = e.target.files;
+                        if (!files || files.length === 0) return;
+                        if (mediaList.length + files.length > 5) {
+                          setErrorMsg('Превышен лимит! Максимум можно прикрепить 5 файлов.');
+                          return;
+                        }
+                        
+                        setErrorMsg('Идет загрузка файлов...');
+                        for (let i = 0; i < files.length; i++) {
+                          const file = files[i];
+                          if (file.size > 5 * 1024 * 1024) {
+                            setErrorMsg(`Файл "${file.name}" превышает 5МБ.`);
+                            continue;
+                          }
+                          try {
+                            const url = await handleFileUpload(file);
+                            setMediaList(prev => [...prev, url]);
+                            setErrorMsg('');
+                          } catch (err: any) {
+                            setErrorMsg(err.message || 'Ошибка при загрузке файла');
+                          }
                         }
                       }}
                       className="hidden"
                     />
                   </label>
                 </div>
+
+                {/* Grid of uploaded files with remove button */}
+                {mediaList.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 bg-wine-dark/30 border-2 border-dashed border-gummy/20 p-4 rounded-2xl">
+                    {mediaList.map((url, index) => {
+                      const isAudio = url.match(/\.(mp3|wav|ogg|m4a)$/i) || url.includes('audio');
+                      return (
+                        <div key={index} className="relative group aspect-square bg-wine border border-gummy/20 rounded-xl overflow-hidden flex flex-col items-center justify-center p-2">
+                          {isAudio ? (
+                            <span className="text-2xl">🎵</span>
+                          ) : (
+                            <img src={url} alt="Загружено" className="w-full h-full object-cover rounded-lg" />
+                          )}
+                          
+                          {/* Sizing Indicator */}
+                          <span className="absolute bottom-1 left-1 bg-black/80 px-1 py-0.5 rounded text-[8px] text-white"># {index + 1}</span>
+                          
+                          {/* Delete Hover Action */}
+                          <button
+                            type="button"
+                            onClick={() => setMediaList(prev => prev.filter((_, idx) => idx !== index))}
+                            className="absolute top-1 right-1 bg-red-600/90 text-white rounded-md p-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 cursor-pointer"
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
+
+              {/* Visual SVG CAPTCHA Code block */}
+              {captcha && (
+                <div className="bg-wine/40 border-2 border-gummy/10 rounded-xl p-4 flex flex-col sm:flex-row gap-4 items-center justify-between">
+                  <div className="flex flex-col gap-0.5 text-left w-full sm:w-auto">
+                    <span className="text-[10px] font-bold uppercase text-gummy/70">Защита от спама и ботов *</span>
+                    <span className="text-[11px] text-gummy/50">Решите пример для подтверждения:</span>
+                  </div>
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                    <div 
+                      className="rounded-lg overflow-hidden border border-gummy/20 cursor-pointer shrink-0"
+                      title="Обновить капчу"
+                      onClick={fetchCaptcha}
+                      dangerouslySetInnerHTML={{ __html: captcha.svg }}
+                    />
+                    <input
+                      type="text"
+                      required
+                      value={captchaAnswer}
+                      onChange={(e) => setCaptchaAnswer(e.target.value)}
+                      placeholder="Ответ"
+                      className="w-20 bg-wine border-2 border-gummy/20 rounded-xl px-3 py-2 text-white text-xs text-center outline-none focus:border-gummy"
+                    />
+                  </div>
+                </div>
+              )}
 
               <button
                 id="take-submit-btn"
@@ -1127,10 +1389,35 @@ const SurveyFormPage: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Math Captcha States
+  const [captcha, setCaptcha] = useState<{ captchaId: string; svg: string } | null>(null);
+  const [captchaAnswer, setCaptchaAnswer] = useState('');
+
+  const fetchCaptcha = async () => {
+    try {
+      const res = await fetch('/api/captcha');
+      if (res.ok) {
+        const data = await res.json();
+        setCaptcha(data);
+        setCaptchaAnswer('');
+      }
+    } catch (err) {
+      console.error('Failed to load captcha', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCaptcha();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!source || !sphere || !age || !roleInterest || !helpDescription) {
       setErrorMsg('Пожалуйста, ответьте на все вопросы анкеты.');
+      return;
+    }
+    if (!captchaAnswer.trim()) {
+      setErrorMsg('Пожалуйста, введите ответ капчи.');
       return;
     }
 
@@ -1147,6 +1434,8 @@ const SurveyFormPage: React.FC = () => {
           age,
           roleInterest,
           helpDescription,
+          captchaId: captcha?.captchaId,
+          captchaAnswer,
         }),
       });
 
@@ -1155,9 +1444,11 @@ const SurveyFormPage: React.FC = () => {
       } else {
         const d = await res.json();
         setErrorMsg(d.error || 'Произошла ошибка при сохранении заявки.');
+        fetchCaptcha();
       }
     } catch (err) {
       setErrorMsg('Сбой подключения к серверу.');
+      fetchCaptcha();
     } finally {
       setLoading(false);
     }
@@ -1276,6 +1567,32 @@ const SurveyFormPage: React.FC = () => {
                 required
               />
             </div>
+
+            {/* Math Captcha Element */}
+            {captcha && (
+              <div className="bg-wine/40 border-2 border-gummy/10 rounded-xl p-4 flex flex-col sm:flex-row gap-4 items-center justify-between mt-1">
+                <div className="flex flex-col gap-0.5 text-left w-full sm:w-auto">
+                  <span className="text-[10px] font-bold uppercase text-gummy/70">Защита от спама и ботов *</span>
+                  <span className="text-[11px] text-gummy/50">Решите пример для подтверждения:</span>
+                </div>
+                <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                  <div 
+                    className="rounded-lg overflow-hidden border border-gummy/20 cursor-pointer shrink-0"
+                    title="Обновить капчу"
+                    onClick={fetchCaptcha}
+                    dangerouslySetInnerHTML={{ __html: captcha.svg }}
+                  />
+                  <input
+                    type="text"
+                    required
+                    value={captchaAnswer}
+                    onChange={(e) => setCaptchaAnswer(e.target.value)}
+                    placeholder="Ответ"
+                    className="w-20 bg-wine border-2 border-gummy/20 rounded-xl px-3 py-2 text-white text-xs text-center outline-none focus:border-gummy"
+                  />
+                </div>
+              </div>
+            )}
 
             <button
               id="survey-submit-btn"
