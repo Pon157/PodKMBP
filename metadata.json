@@ -1,0 +1,8 @@
+{
+  "name": "Wine Mascot Portal",
+  "description": "Companion web application for channel with mascot theme, price list, social links, feedback takes, team surveys, rules, and administrative panel.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
