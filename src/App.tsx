@@ -521,7 +521,7 @@ const PricePage: React.FC<PricePageProps> = ({ prices: initialPrices }) => {
         {/* Price list top-left */}
         <div className="bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 md:p-8 shadow-xl max-w-2xl self-start">
           <h2 className="text-2xl md:text-3xl font-display font-bold text-white mb-2">Прайс-лист услуг</h2>
-          <p className="text-xs text-gummy/60 mb-6 font-mono">Wine Mascot Community Services</p>
+          <p className="text-xs text-gummy/60 mb-6 font-mono">Наши услуги :3</p>
 
           <div className="flex flex-col gap-4">
             {prices.length === 0 ? (
