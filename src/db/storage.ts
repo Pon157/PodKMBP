@@ -1,4 +1,4 @@
-import { db, testDbConnection, lastConnectionError } from './index.ts';
+import { db, pool, testDbConnection, lastConnectionError } from './index.ts';
 import { admins, takes, surveys, prices, unions, tgSessions, tgUserStates } from './schema.ts';
 import { eq, or, and } from 'drizzle-orm';
 import fs from 'fs';
@@ -118,6 +118,105 @@ export const Storage = {
     if (isDbConnected) {
       console.log('Database connected! Running schema checks & seeding if necessary...');
       try {
+        const client = await pool.connect();
+        try {
+          // 1. Create admins table
+          await client.query(`
+            CREATE TABLE IF NOT EXISTS admins (
+              id TEXT PRIMARY KEY,
+              username TEXT NOT NULL UNIQUE,
+              password TEXT NOT NULL,
+              nickname TEXT NOT NULL,
+              role TEXT NOT NULL,
+              about_me TEXT NOT NULL DEFAULT '',
+              hobbies TEXT NOT NULL DEFAULT '',
+              photo_url TEXT NOT NULL DEFAULT '',
+              music_url TEXT NOT NULL DEFAULT '',
+              tg_id TEXT NOT NULL DEFAULT ''
+            );
+          `);
+
+          // 2. Create takes table
+          await client.query(`
+            CREATE TABLE IF NOT EXISTS takes (
+              id TEXT PRIMARY KEY,
+              type TEXT NOT NULL,
+              content TEXT NOT NULL,
+              image_url TEXT,
+              target_admin_id TEXT NOT NULL DEFAULT 'all',
+              status TEXT NOT NULL DEFAULT 'pending',
+              taken_by TEXT,
+              created_at TEXT NOT NULL,
+              dialogue JSONB DEFAULT '[]'::jsonb
+            );
+          `);
+
+          // Add newer columns to takes if missing
+          await client.query(`ALTER TABLE takes ADD COLUMN IF NOT EXISTS user_tg_id TEXT;`);
+          await client.query(`ALTER TABLE takes ADD COLUMN IF NOT EXISTS user_tg_username TEXT;`);
+          await client.query(`ALTER TABLE takes ADD COLUMN IF NOT EXISTS user_tg_name TEXT;`);
+
+          // 3. Create surveys table
+          await client.query(`
+            CREATE TABLE IF NOT EXISTS surveys (
+              id TEXT PRIMARY KEY,
+              source TEXT NOT NULL,
+              sphere TEXT NOT NULL,
+              age INTEGER NOT NULL,
+              role_interest TEXT NOT NULL,
+              help_description TEXT NOT NULL,
+              created_at TEXT NOT NULL
+            );
+          `);
+
+          // 4. Create prices table
+          await client.query(`
+            CREATE TABLE IF NOT EXISTS prices (
+              id TEXT PRIMARY KEY,
+              title TEXT NOT NULL,
+              price TEXT NOT NULL,
+              description TEXT NOT NULL
+            );
+          `);
+
+          // 5. Create unions table
+          await client.query(`
+            CREATE TABLE IF NOT EXISTS unions (
+              id TEXT PRIMARY KEY,
+              name TEXT NOT NULL,
+              link TEXT NOT NULL,
+              description TEXT NOT NULL
+            );
+          `);
+
+          // 6. Create tg_sessions table
+          await client.query(`
+            CREATE TABLE IF NOT EXISTS tg_sessions (
+              code TEXT PRIMARY KEY,
+              tg_id TEXT,
+              username TEXT,
+              first_name TEXT,
+              avatar_url TEXT,
+              status TEXT NOT NULL DEFAULT 'pending',
+              created_at TEXT NOT NULL
+            );
+          `);
+          // Add newer columns to tg_sessions if missing
+          await client.query(`ALTER TABLE tg_sessions ADD COLUMN IF NOT EXISTS avatar_url TEXT;`);
+
+          // 7. Create tg_user_states table
+          await client.query(`
+            CREATE TABLE IF NOT EXISTS tg_user_states (
+              tg_id TEXT PRIMARY KEY,
+              active_take_id TEXT,
+              updated_at TEXT NOT NULL
+            );
+          `);
+          console.log('PostgreSQL schema auto-verified and updated successfully.');
+        } finally {
+          client.release();
+        }
+
         await this.seedIfNeeded();
       } catch (err) {
         console.error('Failed to seed/verify PostgreSQL tables. Falling back to memory/JSON mode.', err);

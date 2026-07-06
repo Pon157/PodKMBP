@@ -56,26 +56,26 @@ bot.start(async (ctx) => {
 
         await Storage.authenticateTgSession(code, String(user.id), user.username || null, user.first_name || null, avatarUrl);
         await ctx.reply(
-          `🎉 *Вы успешно вошли на платформу в качестве ${user.first_name || 'пользователя'}!*\n\n` +
+          `<tg-emoji emoji-id="5461151367559141950">🎉</tg-emoji> <b>Вы успешно вошли на платформу в качестве ${user.first_name || 'пользователя'}!</b>\n\n` +
           `Теперь вернитесь на сайт — вы будете автоматически авторизованы и сможете оставлять тейки/идеи, а также отслеживать ответы.`,
-          { parse_mode: 'Markdown' }
+          { parse_mode: 'HTML' }
         );
       } else {
-        await ctx.reply('❌ *Ошибка:* Код входа устарел или не существует. Пожалуйста, инициируйте вход на сайте заново.', { parse_mode: 'Markdown' });
+        await ctx.reply('<tg-emoji emoji-id="5210952531676504517">❌</tg-emoji> <b>Ошибка:</b> Код входа устарел или не существует. Пожалуйста, инициируйте вход на сайте заново.', { parse_mode: 'HTML' });
       }
     } catch (err: any) {
       console.error('Error in login auth via bot:', err);
-      await ctx.reply('❌ Произошла техническая ошибка при авторизации. Попробуйте снова.');
+      await ctx.reply('<tg-emoji emoji-id="5210952531676504517">❌</tg-emoji> Произошла техническая ошибка при авторизации. Попробуйте снова.', { parse_mode: 'HTML' });
     }
   } else {
     await ctx.reply(
-      `👋 *Привет, ${user.first_name || 'пользователь'}! Это официальный бот обратной связи.* \n\n` +
+      `<tg-emoji emoji-id="5461117441612462242">🙂</tg-emoji> <b>Привет, ${user.first_name || 'пользователь'}! Это официальный бот обратной связи.</b> \n\n` +
       `Здесь вы можете:\n` +
-      `1️⃣ *Получать мгновенные уведомления* о статусе ваших тейков/идей.\n` +
-      `2️⃣ *Вести живой диалог* с администрацией платформы прямо через чат бота!\n` +
-      `3️⃣ *Отправлять фотографии* и дополнительные медиа-файлы.\n\n` +
-      `💻 Чтобы отправить свой первый тейк или войти в личный кабинет, откройте сайт платформы и нажмите *"Войти через Telegram"*!`,
-      { parse_mode: 'Markdown' }
+      `1️⃣ <tg-emoji emoji-id="5458603043203327669">🔔</tg-emoji> <b>Получать мгновенные уведомления</b> о статусе ваших тейков/идей.\n` +
+      `2️⃣ <tg-emoji emoji-id="5443038326535759644">💬</tg-emoji> <b>Вести живой диалог</b> с администрацией платформы прямо через чат бота!\n` +
+      `3️⃣ <tg-emoji emoji-id="5467538555158943525">💭</tg-emoji> <b>Отправлять фотографии</b> и дополнительные медиа-файлы.\n\n` +
+      `💻 <tg-emoji emoji-id="5447410659077661506">🌐</tg-emoji> Чтобы отправить свой первый тейк или войти в личный кабинет, откройте сайт платформы и нажмите <i>"Войти через Telegram"</i>!`,
+      { parse_mode: 'HTML' }
     );
   }
 });
@@ -87,15 +87,19 @@ bot.command('my_takes', async (ctx) => {
     const userTakes = await Storage.getUserTakes(tgId);
     
     if (!userTakes || userTakes.length === 0) {
-      return ctx.reply('📋 *У вас пока нет отправленных тейков или идей.*\nПодайте свой первый тейк на нашем сайте!', { parse_mode: 'Markdown' });
+      return ctx.reply('<tg-emoji emoji-id="5231200819986047254">📊</tg-emoji> <b>У вас пока нет отправленных тейков или идей.</b>\nПодайте свой первый тейк на нашем сайте!', { parse_mode: 'HTML' });
     }
 
-    let text = '📋 *Ваши активные тейки и идеи:*\n\n';
+    let text = '<tg-emoji emoji-id="5231200819986047254">📊</tg-emoji> <b>Ваши активные тейки и идеи:</b>\n\n';
     
     const inlineButtons = userTakes.map((t: any, i: number) => {
-      const statusEmoji = t.status === 'pending' ? '⏳ Ожидает' : t.status === 'taken' ? '💬 В работе' : '✅ Решено';
+      const statusEmoji = t.status === 'pending' 
+        ? '<tg-emoji emoji-id="5386367538735104399">⏳</tg-emoji> Ожидает' 
+        : t.status === 'taken' 
+          ? '<tg-emoji emoji-id="5443038326535759644">💬</tg-emoji> В работе' 
+          : '<tg-emoji emoji-id="5206607081334906820">✔️</tg-emoji> Решено';
       const typeLabel = t.type === 'take' ? 'Тейк' : 'Идея';
-      text += `🔹 *${i + 1}. [${typeLabel}]* "${t.content.substring(0, 35)}..."\n   *Статус:* ${statusEmoji}\n   *ID:* \`${t.id}\`\n\n`;
+      text += `<tg-emoji emoji-id="5427168083074628963">💎</tg-emoji> <b>${i + 1}. [${typeLabel}]</b> "${t.content.substring(0, 35)}..."\n   <b>Статус:</b> ${statusEmoji}\n   <b>ID:</b> <code>${t.id}</code>\n\n`;
       
       return [{
         text: `💬 Диалог: "${t.content.substring(0, 20)}..."`,
@@ -103,17 +107,17 @@ bot.command('my_takes', async (ctx) => {
       }];
     });
 
-    text += `*Выберите тейк ниже, чтобы сделать его активным для переписки прямо в этом боте!*`;
+    text += `<b>Выберите тейк ниже, чтобы сделать его активным для переписки прямо в этом боте!</b>`;
 
     await ctx.reply(text, {
       reply_markup: {
         inline_keyboard: inlineButtons.slice(0, 8) // Limit to 8 for aesthetic styling
       },
-      parse_mode: 'Markdown'
+      parse_mode: 'HTML'
     });
   } catch (err) {
     console.error('Error fetching user takes:', err);
-    await ctx.reply('❌ Ошибка при получении ваших тейков.');
+    await ctx.reply('<tg-emoji emoji-id="5210952531676504517">❌</tg-emoji> Ошибка при получении ваших тейков.', { parse_mode: 'HTML' });
   }
 });
 
@@ -131,11 +135,12 @@ bot.action(/^select_(.+)$/, async (ctx) => {
     }
 
     await Storage.setTgUserState(String(ctx.from.id), take.id);
-    await ctx.answerCbQuery('✅ Чат успешно выбран!');
+    await ctx.answerCbQuery('✔️ Чат успешно выбран!');
     await ctx.reply(
-      `✍️ *Активирован диалог по тейку:*\n` +
-      `_"${take.content.substring(0, 80)}..."_\n\n` +
-      `💬 Отправьте любое сообщение или фото сюда, и оно мгновенно доставится администраторам!`
+      `<tg-emoji emoji-id="5395444784611480792">✏️</tg-emoji> <b>Активирован диалог по тейку:</b>\n` +
+      `<i>"${take.content.substring(0, 80)}..."</i>\n\n` +
+      `<tg-emoji emoji-id="5443038326535759644">💬</tg-emoji> Отправьте любое сообщение или фото сюда, и оно мгновенно доставится администраторам!`,
+      { parse_mode: 'HTML' }
     );
   } catch (err) {
     console.error('Error selecting active take:', err);
@@ -148,27 +153,27 @@ bot.command('select', async (ctx) => {
   try {
     const takeId = ctx.payload;
     if (!takeId) {
-      return ctx.reply('⚠️ *Использование:* `/select <ID_тейка>`', { parse_mode: 'Markdown' });
+      return ctx.reply('<tg-emoji emoji-id="5447644880824181073">⚠️</tg-emoji> <b>Использование:</b> <code>/select &lt;ID_тейка&gt;</code>', { parse_mode: 'HTML' });
     }
 
     const take = await Storage.getTakeById(takeId);
     if (!take) {
-      return ctx.reply('❌ *Тейк с таким ID не найден.*', { parse_mode: 'Markdown' });
+      return ctx.reply('<tg-emoji emoji-id="5210952531676504517">❌</tg-emoji> <b>Тейк с таким ID не найден.</b>', { parse_mode: 'HTML' });
     }
     if (take.userTgId !== String(ctx.from.id)) {
-      return ctx.reply('❌ *У вас нет прав доступа к этому тейку.*', { parse_mode: 'Markdown' });
+      return ctx.reply('<tg-emoji emoji-id="5210952531676504517">❌</tg-emoji> <b>У вас нет прав доступа к этому тейку.</b>', { parse_mode: 'HTML' });
     }
 
     await Storage.setTgUserState(String(ctx.from.id), take.id);
     await ctx.reply(
-      `✍️ *Активирован диалог по тейку:*\n` +
-      `_"${take.content.substring(0, 80)}..."_\n\n` +
-      `💬 Отправьте любое сообщение или фото сюда, и оно мгновенно доставится администраторам!`,
-      { parse_mode: 'Markdown' }
+      `<tg-emoji emoji-id="5395444784611480792">✏️</tg-emoji> <b>Активирован диалог по тейку:</b>\n` +
+      `<i>"${take.content.substring(0, 80)}..."</i>\n\n` +
+      `<tg-emoji emoji-id="5443038326535759644">💬</tg-emoji> Отправьте любое сообщение или фото сюда, и оно мгновенно доставится администраторам!`,
+      { parse_mode: 'HTML' }
     );
   } catch (err) {
     console.error('Manual select command error:', err);
-    await ctx.reply('❌ Произошла ошибка при выборе тейка.');
+    await ctx.reply('<tg-emoji emoji-id="5210952531676504517">❌</tg-emoji> Произошла ошибка при выборе тейка.', { parse_mode: 'HTML' });
   }
 });
 
@@ -180,16 +185,16 @@ bot.on('message', async (ctx) => {
 
     if (!state || !state.activeTakeId) {
       return ctx.reply(
-        `ℹ️ *Вы не выбрали активный диалог.*\n\n` +
+        `<tg-emoji emoji-id="5334544901428229844">ℹ️</tg-emoji> <b>Вы не выбрали активный диалог.</b>\n\n` +
         `Чтобы отправлять сообщения администраторам через бота, пожалуйста, выберите нужный тейк:\n` +
-        `📝 Посмотрите список по команде: /my_takes`,
-        { parse_mode: 'Markdown' }
+        `<tg-emoji emoji-id="5395444784611480792">✏️</tg-emoji> Посмотрите список по команде: /my_takes`,
+        { parse_mode: 'HTML' }
       );
     }
 
     const take = await Storage.getTakeById(state.activeTakeId);
     if (!take) {
-      return ctx.reply('❌ Выбранный ранее диалог больше не доступен. Используйте /my_takes, чтобы выбрать другой.');
+      return ctx.reply('<tg-emoji emoji-id="5210952531676504517">❌</tg-emoji> Выбранный ранее диалог больше не доступен. Используйте /my_takes, чтобы выбрать другой.', { parse_mode: 'HTML' });
     }
 
     let textContent = '';
@@ -213,7 +218,7 @@ bot.on('message', async (ctx) => {
       mediaUrls.push(fileLink.toString());
       textContent = ctx.message.caption || `📎 [Документ: ${ctx.message.document.file_name || 'Файл'}]`;
     } else {
-      return ctx.reply('⚠️ Данный тип вложений не поддерживается. Пожалуйста, прикрепите фото или введите обычный текст.');
+      return ctx.reply('<tg-emoji emoji-id="5447644880824181073">⚠️</tg-emoji> Данный тип вложений не поддерживается. Пожалуйста, прикрепите фото или введите обычный текст.', { parse_mode: 'HTML' });
     }
 
     // Append message to take dialog
@@ -235,7 +240,7 @@ bot.on('message', async (ctx) => {
       
       if (targetAdmin && targetAdmin.tgId) {
         const adminNotification = 
-          `<b>💬 СООБЩЕНИЕ ИЗ ТЕЛЕГРАМ-БОТА</b>\n\n` +
+          `<tg-emoji emoji-id="5443038326535759644">💬</tg-emoji> <b>СООБЩЕНИЕ ИЗ ТЕЛЕГРАМ-БОТА</b>\n\n` +
           `<b>В чате тейка:</b> <i>"${take.content.substring(0, 30)}..."</i>\n` +
           `<b>Пользователь:</b> ${ctx.from.first_name}\n` +
           `<b>Сообщение:</b> ${textContent}\n` +
@@ -257,11 +262,11 @@ bot.on('message', async (ctx) => {
       }
     }
 
-    await ctx.reply('✅ *Ваше сообщение отправлено администрации!* Вы получите ответ прямо в этот чат.', { parse_mode: 'Markdown' });
+    await ctx.reply('<tg-emoji emoji-id="5206607081334906820">✔️</tg-emoji> <b>Ваше сообщение отправлено администрации!</b> Вы получите ответ прямо в этот чат.', { parse_mode: 'HTML' });
 
   } catch (err) {
     console.error('Error handling direct message in bot:', err);
-    await ctx.reply('❌ Произошла ошибка при отправке вашего сообщения.');
+    await ctx.reply('<tg-emoji emoji-id="5210952531676504517">❌</tg-emoji> Произошла ошибка при отправке вашего сообщения.', { parse_mode: 'HTML' });
   }
 });
 

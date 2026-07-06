@@ -3,6 +3,9 @@ import path from 'path';
 import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import { Storage } from './src/db/storage.ts';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 6776;
@@ -114,7 +117,7 @@ app.post('/api/auth/tg-login-init', async (req, res) => {
     await Storage.createTgSession(code);
     res.json({
       code,
-      botUsername: process.env.TELEGRAM_BOT_USERNAME || 'otzovyssaita_bot'
+      botUsername: process.env.TELEGRAM_BOT_USERNAME || 'MascotFeedbackBot'
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

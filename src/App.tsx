@@ -918,7 +918,7 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
   const [errorMsg, setErrorMsg] = useState('');
 
   const [authCode, setAuthCode] = useState<string | null>(null);
-  const [botUsername, setBotUsername] = useState<string>('otzovyssaita_bot');
+  const [botUsername, setBotUsername] = useState<string>('MascotFeedbackBot');
   const [authLoading, setAuthLoading] = useState(false);
 
   // Math Captcha States
