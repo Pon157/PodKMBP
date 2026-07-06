@@ -1693,7 +1693,7 @@ const SurveyFormPage: React.FC = () => {
                 type="text"
                 value={sphere}
                 onChange={(e) => setSphere(e.target.value)}
-                placeholder="Рисование, дизайн, модерация, кодинг..."
+                placeholder="КМБП, другое км."
                 className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white text-xs outline-none focus:border-gummy"
                 required
               />
@@ -1723,7 +1723,7 @@ const SurveyFormPage: React.FC = () => {
                 type="text"
                 value={roleInterest}
                 onChange={(e) => setRoleInterest(e.target.value)}
-                placeholder="Вести посты, модерировать чат, рисовать арты..."
+                placeholder="Вести посты, модерировать чат..."
                 className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white text-xs outline-none focus:border-gummy"
                 required
               />
