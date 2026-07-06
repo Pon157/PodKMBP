@@ -52,6 +52,41 @@ interface AdminPanelProps {
   onRefreshAdmins?: () => void;
 }
 
+export function parseProfileUrls(urlField: string | null | undefined): string[] {
+  if (!urlField) return [];
+  try {
+    const trimmed = urlField.trim();
+    if (trimmed.startsWith('[')) {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed.filter(Boolean);
+      }
+    }
+  } catch (e) {
+    // legacy or single URL fallback
+  }
+  if (urlField.includes(',')) {
+    return urlField.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  return [urlField.trim()].filter(Boolean);
+}
+
+export function parseMediaUrls(imageUrl: string | null | undefined): string[] {
+  if (!imageUrl) return [];
+  try {
+    const trimmed = imageUrl.trim();
+    if (trimmed.startsWith('[')) {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed.filter(Boolean);
+      }
+    }
+  } catch (err) {
+    // fallback
+  }
+  return [imageUrl.trim()].filter(Boolean);
+}
+
 export const AdminPanel: React.FC<AdminPanelProps> = ({
   currentAdmin,
   onLogout,
@@ -72,10 +107,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [role, setRole] = useState(currentAdmin.role);
   const [aboutMe, setAboutMe] = useState(currentAdmin.aboutMe);
   const [hobbies, setHobbies] = useState(currentAdmin.hobbies);
-  const [photoUrl, setPhotoUrl] = useState(currentAdmin.photoUrl);
-  const [musicUrl, setMusicUrl] = useState(currentAdmin.musicUrl);
   const [tgId, setTgId] = useState(currentAdmin.tgId);
   const [password, setPassword] = useState('');
+  
+  const [photosList, setPhotosList] = useState<string[]>(() => parseProfileUrls(currentAdmin.photoUrl));
+  const [musicList, setMusicList] = useState<string[]>(() => parseProfileUrls(currentAdmin.musicUrl));
+
+  // Sync profile editing state if currentAdmin changes
+  useEffect(() => {
+    setNickname(currentAdmin.nickname);
+    setRole(currentAdmin.role);
+    setAboutMe(currentAdmin.aboutMe);
+    setHobbies(currentAdmin.hobbies);
+    setTgId(currentAdmin.tgId);
+    setPhotosList(parseProfileUrls(currentAdmin.photoUrl));
+    setMusicList(parseProfileUrls(currentAdmin.musicUrl));
+  }, [currentAdmin]);
   
   // New Admin Form State (Owner only)
   const [newUsername, setNewUsername] = useState('');
@@ -268,8 +315,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           role,
           aboutMe,
           hobbies,
-          photoUrl,
-          musicUrl,
+          photoUrl: JSON.stringify(photosList),
+          musicUrl: JSON.stringify(musicList),
           tgId,
           password: password || undefined,
         }),
@@ -607,34 +654,59 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold uppercase text-gummy/70">Ссылка на фото (JPG/PNG)</label>
-                      <div className="flex gap-2 items-center">
-                        <input
-                          id="profile-photo"
-                          type="text"
-                          value={photoUrl}
-                          onChange={(e) => setPhotoUrl(e.target.value)}
-                          className="flex-1 bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white focus:border-gummy outline-none transition-all text-sm"
-                          placeholder="https://example.com/photo.jpg"
-                        />
-                        <label className="bg-gummy hover:bg-white text-wine font-bold px-4 py-2.5 rounded-xl cursor-pointer transition-all text-xs flex items-center justify-center shrink-0">
+                  {/* Photo/Media Grid for profile edit */}
+                  <div className="flex flex-col gap-3 p-4 bg-wine-dark/40 border-2 border-dashed border-gummy/20 rounded-2xl">
+                    <label className="text-xs font-bold uppercase text-gummy/70">Фото профиля (Максимум 10 штук)</label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        placeholder="Введите URL фотографии или выберите файл ниже"
+                        id="new-photo-url-input"
+                        className="flex-1 bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white focus:border-gummy outline-none transition-all text-xs"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const val = e.currentTarget.value.trim();
+                            if (val) {
+                              setPhotosList(prev => [...prev, val]);
+                              e.currentTarget.value = '';
+                            }
+                          }
+                        }}
+                      />
+                      <div className="flex gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const input = document.getElementById('new-photo-url-input') as HTMLInputElement;
+                            if (input && input.value.trim()) {
+                              setPhotosList(prev => [...prev, input.value.trim()]);
+                              input.value = '';
+                            }
+                          }}
+                          className="bg-gummy hover:bg-white text-wine font-bold px-4 py-2 rounded-xl transition-all text-xs"
+                        >
+                          Добавить ➕
+                        </button>
+                        <label className="bg-wine border border-gummy/30 hover:border-gummy text-gummy font-bold px-4 py-2 rounded-xl cursor-pointer transition-all text-xs flex items-center justify-center">
                           Загрузить 🖼️
                           <input
                             type="file"
                             accept="image/*"
+                            multiple
                             onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              if (!file) return;
-                              try {
-                                showStatus('Загрузка фото...', 'success');
-                                const url = await handleFileUpload(file);
-                                setPhotoUrl(url);
-                                showStatus('Фото успешно загружено!', 'success');
-                              } catch (err: any) {
-                                showStatus(err.message || 'Ошибка загрузки фото', 'error');
+                              const files = e.target.files;
+                              if (!files) return;
+                              for (let i = 0; i < files.length; i++) {
+                                try {
+                                  showStatus(`Загрузка фото ${i + 1}...`, 'success');
+                                  const url = await handleFileUpload(files[i]);
+                                  setPhotosList(prev => [...prev, url]);
+                                } catch (err: any) {
+                                  showStatus(err.message || 'Ошибка загрузки', 'error');
+                                }
                               }
+                              showStatus('Все фото успешно загружены!', 'success');
                             }}
                             className="hidden"
                           />
@@ -642,39 +714,108 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold uppercase text-gummy/70">Прикрепить музыку (MP3 URL)</label>
-                      <div className="flex gap-2 items-center">
-                        <input
-                          id="profile-music"
-                          type="text"
-                          value={musicUrl}
-                          onChange={(e) => setMusicUrl(e.target.value)}
-                          className="flex-1 bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white focus:border-gummy outline-none transition-all text-sm"
-                          placeholder="https://example.com/audio.mp3"
-                        />
-                        <label className="bg-gummy hover:bg-white text-wine font-bold px-4 py-2.5 rounded-xl cursor-pointer transition-all text-xs flex items-center justify-center shrink-0">
+                    {/* Photos Preview Grid */}
+                    {photosList.length > 0 && (
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-1">
+                        {photosList.map((url, idx) => (
+                          <div key={idx} className="relative group aspect-square bg-wine border border-gummy/20 rounded-xl overflow-hidden">
+                            <img src={url} alt={`Фото ${idx + 1}`} className="w-full h-full object-cover" />
+                            <span className="absolute bottom-1 left-1 bg-black/80 px-1 py-0.5 rounded text-[8px] text-white font-mono"># {idx + 1}</span>
+                            <button
+                              type="button"
+                              onClick={() => setPhotosList(prev => prev.filter((_, i) => i !== idx))}
+                              className="absolute top-1 right-1 bg-red-600 hover:bg-red-500 text-white p-1 rounded-md cursor-pointer transition-all"
+                            >
+                              <Trash2 size={10} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Music Playlist Grid for profile edit */}
+                  <div className="flex flex-col gap-3 p-4 bg-wine-dark/40 border-2 border-dashed border-gummy/20 rounded-2xl">
+                    <label className="text-xs font-bold uppercase text-gummy/70">Музыкальные файлы (MP3 / Плейлист)</label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        placeholder="Введите URL аудиозаписи (MP3) или выберите файл ниже"
+                        id="new-music-url-input"
+                        className="flex-1 bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white focus:border-gummy outline-none transition-all text-xs"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const val = e.currentTarget.value.trim();
+                            if (val) {
+                              setMusicList(prev => [...prev, val]);
+                              e.currentTarget.value = '';
+                            }
+                          }
+                        }}
+                      />
+                      <div className="flex gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const input = document.getElementById('new-music-url-input') as HTMLInputElement;
+                            if (input && input.value.trim()) {
+                              setMusicList(prev => [...prev, input.value.trim()]);
+                              input.value = '';
+                            }
+                          }}
+                          className="bg-gummy hover:bg-white text-wine font-bold px-4 py-2 rounded-xl transition-all text-xs"
+                        >
+                          Добавить ➕
+                        </button>
+                        <label className="bg-wine border border-gummy/30 hover:border-gummy text-gummy font-bold px-4 py-2 rounded-xl cursor-pointer transition-all text-xs flex items-center justify-center">
                           Загрузить 🎵
                           <input
                             type="file"
                             accept="audio/*"
+                            multiple
                             onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              if (!file) return;
-                              try {
-                                showStatus('Загрузка аудио...', 'success');
-                                const url = await handleFileUpload(file);
-                                setMusicUrl(url);
-                                showStatus('Аудио успешно загружено!', 'success');
-                              } catch (err: any) {
-                                showStatus(err.message || 'Ошибка загрузки аудио', 'error');
+                              const files = e.target.files;
+                              if (!files) return;
+                              for (let i = 0; i < files.length; i++) {
+                                try {
+                                  showStatus(`Загрузка трека ${i + 1}...`, 'success');
+                                  const url = await handleFileUpload(files[i]);
+                                  setMusicList(prev => [...prev, url]);
+                                } catch (err: any) {
+                                  showStatus(err.message || 'Ошибка загрузки', 'error');
+                                }
                               }
+                              showStatus('Музыка успешно загружена!', 'success');
                             }}
                             className="hidden"
                           />
                         </label>
                       </div>
                     </div>
+
+                    {/* Music Playlist Preview */}
+                    {musicList.length > 0 && (
+                      <div className="flex flex-col gap-2 mt-1">
+                        {musicList.map((url, idx) => (
+                          <div key={idx} className="flex justify-between items-center bg-wine/40 border border-gummy/20 rounded-xl px-3 py-2 text-xs text-white">
+                            <span className="flex items-center gap-1.5 font-medium truncate flex-1 pr-3">
+                              🎵 <span className="truncate">{url.substring(url.lastIndexOf('/') + 1) || url}</span>
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-gummy/50 font-mono">#{idx + 1}</span>
+                              <button
+                                type="button"
+                                onClick={() => setMusicList(prev => prev.filter((_, i) => i !== idx))}
+                                className="text-red-400 hover:text-red-500 p-1 cursor-pointer transition-all"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -706,10 +847,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     </div>
                   </div>
 
-                  {musicUrl && (
-                    <div className="mt-2">
-                      <p className="text-xs font-semibold uppercase text-gummy/70 mb-2">Прослушать добавленную музыку</p>
-                      <MusicPlayer url={musicUrl} title="Превью в вашем профиле" />
+                  {musicList.length > 0 && (
+                    <div className="mt-2 flex flex-col gap-2">
+                      <p className="text-xs font-semibold uppercase text-gummy/70 mb-1">Прослушать добавленную музыку</p>
+                      {musicList.map((trackUrl, idx) => (
+                        <MusicPlayer key={idx} url={trackUrl} title={`Превью трека #${idx + 1}`} />
+                      ))}
                     </div>
                   )}
 
@@ -756,11 +899,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           </div>
                           <p className="text-sm text-white font-medium whitespace-pre-line">{take.content}</p>
                           
-                          {take.imageUrl && (
-                            <a href={take.imageUrl} target="_blank" rel="noreferrer" className="inline-block mt-3 border border-gummy/20 rounded-lg overflow-hidden max-w-[200px]">
-                              <img src={take.imageUrl} alt="Прикрепленный файл" className="w-full object-cover max-h-32" />
-                            </a>
-                          )}
+                          {(() => {
+                            const mediaUrls = parseMediaUrls(take.imageUrl);
+                            if (mediaUrls.length === 0) return null;
+                            return (
+                              <div className="flex flex-wrap gap-2 mt-3">
+                                {mediaUrls.map((url, idx) => {
+                                  const isAudio = url.match(/\.(mp3|wav|ogg|m4a)$/i) || url.includes('audio');
+                                  return (
+                                    <a key={idx} href={url} target="_blank" rel="noreferrer" className="relative group border border-gummy/20 rounded-lg overflow-hidden w-20 h-20 flex items-center justify-center bg-wine/30 hover:border-gummy transition-all" title="Нажмите, чтобы открыть">
+                                      {isAudio ? (
+                                        <span className="text-xl">🎵</span>
+                                      ) : (
+                                        <img src={url} alt={`Прикрепленный файл ${idx + 1}`} className="w-full h-full object-cover" />
+                                      )}
+                                      <span className="absolute bottom-0.5 right-0.5 bg-black/75 px-1 py-0.2 rounded text-[8px] text-white font-mono">#{idx + 1}</span>
+                                    </a>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         <button
@@ -832,11 +991,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         <p className="text-sm font-semibold text-white mt-2 max-h-16 overflow-y-auto pr-1">
                           "{activeChatTake.content}"
                         </p>
-                        {activeChatTake.imageUrl && (
-                          <a href={activeChatTake.imageUrl} target="_blank" rel="noreferrer" className="text-xs text-gummy hover:underline flex items-center gap-1 mt-1">
-                            🖼️ Открыть прикрепленный файл
-                          </a>
-                        )}
+                        {(() => {
+                          const mediaUrls = parseMediaUrls(activeChatTake.imageUrl);
+                          if (mediaUrls.length === 0) return null;
+                          return (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {mediaUrls.map((url, idx) => {
+                                const isAudio = url.match(/\.(mp3|wav|ogg|m4a)$/i) || url.includes('audio');
+                                return (
+                                  <a key={idx} href={url} target="_blank" rel="noreferrer" className="text-xs text-gummy hover:underline flex items-center gap-1 bg-wine/30 border border-gummy/20 px-2.5 py-1.5 rounded-lg transition-all hover:border-gummy">
+                                    {isAudio ? '🎵 Музыка' : '🖼️ Фото'} #{idx + 1}
+                                  </a>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       {/* Dialogue Chat Messages */}

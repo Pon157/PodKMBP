@@ -8,6 +8,20 @@ dotenv.config();
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const proxy = process.env.TELEGRAM_PROXY; // Optional HTTP / SOCKS proxy
 
+export let botInstance: Telegraf | null = null;
+
+export async function sendTelegramNotification(tgId: string, text: string): Promise<boolean> {
+  if (botInstance) {
+    try {
+      await botInstance.telegram.sendMessage(tgId, text, { parse_mode: 'HTML' });
+      return true;
+    } catch (err) {
+      console.error(`Error sending message via botInstance to ${tgId}:`, err);
+    }
+  }
+  return false;
+}
+
 if (!token) {
   console.warn('⚠️ TELEGRAM_BOT_TOKEN is not defined in your environment variables! Telegram bot will be disabled.');
 } else {
@@ -20,6 +34,7 @@ if (!token) {
   }
 
   const bot = new Telegraf(token, botOptions);
+  botInstance = bot;
 
   // Initialize DB Connection (non-blocking async to avoid top-level await)
   (async () => {

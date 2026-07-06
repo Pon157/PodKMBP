@@ -14,6 +14,26 @@ import {
   MapPin, Eye, Play, Plus, BookOpen, Volume2, Globe, Trash2, Lock
 } from 'lucide-react';
 
+// Safe profile urls parser supporting JSON arrays, comma-separated, or single urls
+export function parseProfileUrls(urlField: string | null | undefined): string[] {
+  if (!urlField) return [];
+  try {
+    const trimmed = urlField.trim();
+    if (trimmed.startsWith('[')) {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed.filter(Boolean);
+      }
+    }
+  } catch (e) {
+    // legacy or single URL fallback
+  }
+  if (urlField.includes(',')) {
+    return urlField.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  return [urlField.trim()].filter(Boolean);
+}
+
 // Generates or retrieves a unique client ID for online counters
 const getClientId = () => {
   let id = localStorage.getItem('wine_client_id');
@@ -665,7 +685,13 @@ interface AdminsOverviewPageProps {
 const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initialAdmins }) => {
   const navigate = useNavigate();
   const [selectedAdmin, setSelectedAdmin] = useState<Admin | null>(null);
+  const [selectedAdminPhotoIdx, setSelectedAdminPhotoIdx] = useState<number>(0);
   const [admins, setAdmins] = useState<Admin[]>(initialAdmins);
+
+  const handleSelectAdmin = (admin: Admin | null) => {
+    setSelectedAdmin(admin);
+    setSelectedAdminPhotoIdx(0);
+  };
 
   useEffect(() => {
     const fetchAdmins = async () => {
@@ -711,7 +737,7 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
                 </div>
 
                 <img
-                  src={adm.photoUrl}
+                  src={parseProfileUrls(adm.photoUrl)[0] || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'}
                   alt={adm.nickname}
                   className="w-24 h-24 rounded-full object-cover border-4 border-gummy shadow-md group-hover:scale-105 transition-all mt-2"
                 />
@@ -723,7 +749,7 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
 
                 <button
                   id={`learn-more-btn-${adm.id}`}
-                  onClick={() => setSelectedAdmin(adm)}
+                  onClick={() => handleSelectAdmin(adm)}
                   className="w-full bg-gummy text-wine text-xs font-bold py-2.5 rounded-xl hover:bg-white hover:scale-[1.02] transition-all"
                 >
                   Ознакомиться
@@ -752,17 +778,47 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
                 <AnimatedCloud className="absolute -top-6 -right-6 opacity-30 pointer-events-none" size={100} />
 
                 <div className="flex flex-col gap-5 mt-2">
-                  <div className="flex gap-4 items-center">
-                    <img
-                      src={selectedAdmin.photoUrl}
-                      alt={selectedAdmin.nickname}
-                      className="w-16 h-16 rounded-full object-cover border-2 border-gummy"
-                    />
-                    <div>
-                      <h3 className="font-display font-bold text-white text-xl">{selectedAdmin.nickname}</h3>
-                      <span className="text-xs bg-wine/60 border border-gummy/20 px-2.5 py-0.5 rounded-full text-gummy font-semibold inline-block mt-0.5">
-                        {selectedAdmin.role}
-                      </span>
+                  <div className="flex flex-col gap-4">
+                    {(() => {
+                      const photos = parseProfileUrls(selectedAdmin.photoUrl);
+                      const activePhoto = photos[selectedAdminPhotoIdx] || photos[0] || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200';
+                      return (
+                        <div className="flex flex-col gap-3">
+                          {/* Main Showcase Image */}
+                          <div className="relative aspect-video w-full rounded-2xl overflow-hidden border-4 border-gummy bg-wine/20 shadow-inner flex items-center justify-center">
+                            <img src={activePhoto} alt={selectedAdmin.nickname} className="w-full h-full object-cover" />
+                            <div className="absolute top-2 left-2 bg-black/70 px-2.5 py-1 rounded-md text-[10px] font-mono text-gummy border border-gummy/20">
+                              Фото {selectedAdminPhotoIdx + 1} из {Math.max(1, photos.length)}
+                            </div>
+                          </div>
+                          
+                          {/* Gallery Thumbnails */}
+                          {photos.length > 1 && (
+                            <div className="flex gap-2 overflow-x-auto pb-1 max-w-full justify-center">
+                              {photos.map((ph, idx) => (
+                                <button
+                                  key={idx}
+                                  onClick={() => setSelectedAdminPhotoIdx(idx)}
+                                  className={`w-12 h-12 rounded-xl overflow-hidden shrink-0 border-2 transition-all ${
+                                    selectedAdminPhotoIdx === idx ? 'border-gummy scale-110' : 'border-transparent opacity-60 hover:opacity-100'
+                                  }`}
+                                >
+                                  <img src={ph} alt={`Миниатюра ${idx + 1}`} className="w-full h-full object-cover" />
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    <div className="flex items-center gap-4 border-t border-gummy/20 pt-3">
+                      <div className="flex-1">
+                        <h3 className="font-display font-bold text-white text-xl">{selectedAdmin.nickname}</h3>
+                        <span className="text-xs bg-wine/60 border border-gummy/20 px-2.5 py-0.5 rounded-full text-gummy font-semibold inline-block mt-1.5">
+                          {selectedAdmin.role}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -781,12 +837,24 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
                   )}
 
                   {/* Attached Music Playback */}
-                  {selectedAdmin.musicUrl && (
-                    <div className="flex flex-col gap-2">
-                      <span className="text-[10px] text-gummy/60 font-bold uppercase">Любимый трек / Вайб</span>
-                      <MusicPlayer url={selectedAdmin.musicUrl} title={`Любимый вайб: ${selectedAdmin.nickname}`} />
-                    </div>
-                  )}
+                  {(() => {
+                    const tracks = parseProfileUrls(selectedAdmin.musicUrl);
+                    if (tracks.length === 0) return null;
+                    return (
+                      <div className="flex flex-col gap-2 border-t border-gummy/10 pt-3">
+                        <span className="text-[10px] text-gummy/60 font-bold uppercase tracking-widest mb-1">Плейлист / Любимые треки ({tracks.length})</span>
+                        <div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto pr-1">
+                          {tracks.map((trackUrl, idx) => (
+                            <MusicPlayer
+                              key={idx}
+                              url={trackUrl}
+                              title={`Трек #${idx + 1}: ${trackUrl.substring(trackUrl.lastIndexOf('/') + 1) || selectedAdmin.nickname}`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   <div className="flex gap-3 mt-4">
                     <button
@@ -1314,11 +1382,11 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
 
               {/* Multiple Media Attachments */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase text-gummy/70">Прикрепить фото / медиа (макс. 5 шт. до 5МБ каждая)</label>
+                <label className="text-[10px] font-bold uppercase text-gummy/70">Прикрепить фото / медиа (макс. 10 шт. до 5МБ каждая)</label>
                 
                 <div className="flex gap-2 items-center">
                   <div className="flex-1 bg-wine/30 border border-gummy/20 rounded-xl px-4 py-2.5 text-gummy/50 text-xs">
-                    Загружено: {mediaList.length} / 5 файлов
+                    Загружено: {mediaList.length} / 10 файлов
                   </div>
                   <label className="bg-gummy hover:bg-white text-wine font-bold px-4 py-2.5 rounded-xl cursor-pointer transition-all text-xs flex items-center justify-center shrink-0">
                     Выбрать файл 🖼️
@@ -1329,8 +1397,8 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
                       onChange={async (e) => {
                         const files = e.target.files;
                         if (!files || files.length === 0) return;
-                        if (mediaList.length + files.length > 5) {
-                          setErrorMsg('Превышен лимит! Максимум можно прикрепить 5 файлов.');
+                        if (mediaList.length + files.length > 10) {
+                          setErrorMsg('Превышен лимит! Максимум можно прикрепить 10 файлов.');
                           return;
                         }
                         

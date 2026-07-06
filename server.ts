@@ -7,7 +7,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-import './bot.ts';
+import { sendTelegramNotification } from './bot.ts';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 6776;
@@ -46,6 +47,14 @@ async function notifyTelegram(tgId: string, text: string) {
     return;
   }
   try {
+    // Try sending through the bot client first (which supports proxy!)
+    const sent = await sendTelegramNotification(tgId, text);
+    if (sent) {
+      console.log('Telegram message sent successfully via bot client to:', tgId);
+      return;
+    }
+
+    console.log('Bot client not ready or failed, falling back to direct Telegram API fetch...');
     const url = `https://api.telegram.org/bot${token}/sendMessage`;
     const res = await fetch(url, {
       method: 'POST',
@@ -59,7 +68,7 @@ async function notifyTelegram(tgId: string, text: string) {
     if (!res.ok) {
       console.error('Telegram API responded with error status:', res.status, await res.text());
     } else {
-      console.log('Telegram message sent successfully to chatId:', tgId);
+      console.log('Telegram message sent successfully via direct fetch to chatId:', tgId);
     }
   } catch (err) {
     console.error('Failed to send Telegram message:', err);
