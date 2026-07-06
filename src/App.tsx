@@ -593,7 +593,7 @@ const SocialsPage: React.FC = () => {
           <h3 className="font-bold text-white text-base mb-2">ВКонтакте</h3>
           <a
             id="social-vk-btn"
-            href="https://vk.com/gummy_wine"
+            href="https://vk.com"
             target="_blank"
             rel="noreferrer"
             className="w-full inline-block bg-gummy text-wine text-xs font-bold py-2 rounded-xl hover:bg-white transition-all"
@@ -607,7 +607,7 @@ const SocialsPage: React.FC = () => {
           <h3 className="font-bold text-white text-base mb-2">Instagramm *</h3>
           <a
             id="social-inst-btn"
-            href="https://instagram.com/gummy_wine"
+            href="https://instagram.com"
             target="_blank"
             rel="noreferrer"
             className="w-full inline-block bg-gummy text-wine text-xs font-bold py-2 rounded-xl hover:bg-white transition-all"
@@ -621,7 +621,7 @@ const SocialsPage: React.FC = () => {
           <h3 className="font-bold text-white text-base mb-2">TikTok</h3>
           <a
             id="social-tiktok-btn"
-            href="https://tiktok.com/@gummy_wine"
+            href="https://tiktok.com"
             target="_blank"
             rel="noreferrer"
             className="w-full inline-block bg-gummy text-wine text-xs font-bold py-2 rounded-xl hover:bg-white transition-all"
@@ -635,7 +635,7 @@ const SocialsPage: React.FC = () => {
           <h3 className="font-bold text-white text-base mb-2">Телеграм</h3>
           <a
             id="social-tgk-btn"
-            href="https://t.me/gummy_wine_channel"
+            href="https://t.me"
             target="_blank"
             rel="noreferrer"
             className="w-full inline-block bg-gummy text-wine text-xs font-bold py-2 rounded-xl hover:bg-white transition-all"
