@@ -1,11 +1,10 @@
 import express from 'express';
 import path from 'path';
-import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
+import { Storage } from './src/db/storage.ts';
 
 const app = express();
 const PORT = 3000;
-const DB_PATH = path.join(process.cwd(), 'db.json');
 
 // Middleware
 app.use(express.json({ limit: '10mb' }));
@@ -22,166 +21,6 @@ function getActiveCount(): number {
   }
   return Math.max(1, activeUsers.size);
 }
-
-// DB schema interfaces
-interface Admin {
-  id: string;
-  username: string;
-  password?: string;
-  nickname: string;
-  role: string;
-  aboutMe: string;
-  hobbies: string;
-  photoUrl: string;
-  musicUrl: string;
-  tgId: string;
-}
-
-interface Take {
-  id: string;
-  type: 'take' | 'idea';
-  content: string;
-  imageUrl?: string;
-  targetAdminId: string;
-  status: 'pending' | 'taken' | 'resolved';
-  takenBy?: string;
-  createdAt: string;
-  dialogue?: Array<{
-    sender: 'user' | 'admin';
-    text: string;
-    createdAt: string;
-  }>;
-}
-
-interface Survey {
-  id: string;
-  source: string;
-  sphere: string;
-  age: number;
-  roleInterest: string;
-  helpDescription: string;
-  createdAt: string;
-}
-
-interface PriceItem {
-  id: string;
-  title: string;
-  price: string;
-  description: string;
-}
-
-interface UnionItem {
-  id: string;
-  name: string;
-  link: string;
-  description: string;
-}
-
-interface DbSchema {
-  admins: Admin[];
-  takes: Take[];
-  surveys: Survey[];
-  prices: PriceItem[];
-  unions: UnionItem[];
-}
-
-const defaultDb: DbSchema = {
-  admins: [
-    {
-      id: 'owner',
-      username: 'owner',
-      password: 'owner123',
-      nickname: 'Главный Владелец',
-      role: 'Owner',
-      aboutMe: 'Создатель канала, маскота и хранитель уюта. Всегда на связи по важным вопросам.',
-      hobbies: 'Управление, Рисование, Чайные церемонии',
-      photoUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=200',
-      musicUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-      tgId: '12345678'
-    },
-    {
-      id: 'kibo',
-      username: 'kibo',
-      password: 'kibo123',
-      nickname: 'Кибо',
-      role: 'Разработчик / Дизайнер',
-      aboutMe: 'С вайбом маскота!!! Создаю крутой визуал, пишу код и поддерживаю атмосферу.',
-      hobbies: 'Рисование, Кодинг, Видеоигры, Эмбиент',
-      photoUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200',
-      musicUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-      tgId: '98765432'
-    }
-  ],
-  takes: [
-    {
-      id: 'take1',
-      type: 'take',
-      content: 'Привет! Предлагаю сделать совместный стрим-обзор на новые арты сообщества. Будет весело!',
-      imageUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=300',
-      targetAdminId: 'all',
-      status: 'pending',
-      createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-      dialogue: []
-    }
-  ],
-  surveys: [
-    {
-      id: 's1',
-      source: 'Из Телеграм канала',
-      sphere: 'Диджитал арт и дизайн',
-      age: 19,
-      roleInterest: 'Помощник дизайнера / Модератор',
-      helpDescription: 'Готов модерировать чат, делать превьюшки и помогать с оформлением постов.',
-      createdAt: new Date(Date.now() - 3600000 * 5).toISOString()
-    }
-  ],
-  prices: [
-    { id: 'p1', title: 'Оформление профиля', price: '450 ₽', description: 'Полный комплект: аватарка, баннер, декоративные элементы в едином стиле канала.' },
-    { id: 'p2', title: 'Анимация маскота', price: '700 ₽', description: 'Плавная 2D анимация вашего маскота (idle, эмоции, махание рукой, моргание).' },
-    { id: 'p3', title: 'Кастомный арт маскота', price: '500 ₽', description: 'Рисунок маскота в любой позе и одежде по вашему ТЗ. Идеально для стикеров.' },
-    { id: 'p4', title: 'Консультация по дизайну', price: '200 ₽', description: 'Разбор вашего текущего оформления и практические советы по улучшению юзабилити и визуала.' }
-  ],
-  unions: [
-    { id: 'u1', name: 'Союз Memory Base', link: 'https://t.me/memory_base', description: 'Крупнейшее содружество по борьбе с мошенничеством в сфере креативных каналов. Если вы столкнулись с мошенником, обращайтесь к ним!' }
-  ]
-};
-
-let db: DbSchema = { ...defaultDb };
-
-function loadDb() {
-  try {
-    if (fs.existsSync(DB_PATH)) {
-      const data = fs.readFileSync(DB_PATH, 'utf-8');
-      db = JSON.parse(data);
-      // Ensure default admins exist
-      if (!db.admins || db.admins.length === 0) {
-        db.admins = [...defaultDb.admins];
-      }
-      if (!db.admins.find(a => a.id === 'owner')) {
-        db.admins.push(defaultDb.admins[0]);
-      }
-      if (!db.prices) db.prices = defaultDb.prices;
-      if (!db.unions) db.unions = defaultDb.unions;
-      if (!db.takes) db.takes = [];
-      if (!db.surveys) db.surveys = [];
-    } else {
-      saveDb();
-    }
-  } catch (e) {
-    console.error('Failed to load db, using defaults', e);
-  }
-}
-
-function saveDb() {
-  try {
-    fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2), 'utf-8');
-  } catch (e) {
-    console.error('Failed to save db', e);
-  }
-}
-
-// Load Database on Startup
-loadDb();
 
 // Telegram Bot helper
 async function notifyTelegram(tgId: string, text: string) {
@@ -222,315 +61,489 @@ app.post('/api/active-ping', (req, res) => {
   res.json({ activeCount: getActiveCount() });
 });
 
+// Database status check
+app.get('/api/db-status', (req, res) => {
+  res.json({
+    postgresMode: Storage.isPostgresMode(),
+    status: Storage.isPostgresMode() ? 'Connected to PostgreSQL' : 'Fallback Local JSON'
+  });
+});
+
 // Auth Login
-app.post('/api/auth/login', (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) {
-    return res.status(400).json({ error: 'Логин и пароль обязательны' });
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Логин и пароль обязательны' });
+    }
+
+    const allAdmins = await Storage.getAdmins();
+    const admin = allAdmins.find(
+      (a) => a.username.toLowerCase() === username.toLowerCase() && a.password === password
+    );
+
+    if (!admin) {
+      return res.status(401).json({ error: 'Неверный логин или пароль' });
+    }
+
+    // Return session info (omitting password)
+    const { password: _, ...safeAdmin } = admin;
+    res.json({ user: safeAdmin });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Ошибка сервера при авторизации: ' + err.message });
   }
-
-  const admin = db.admins.find(
-    (a) => a.username.toLowerCase() === username.toLowerCase() && a.password === password
-  );
-
-  if (!admin) {
-    return res.status(401).json({ error: 'Неверный логин или пароль' });
-  }
-
-  // Return session info (omitting password)
-  const { password: _, ...safeAdmin } = admin;
-  res.json({ user: safeAdmin });
 });
 
 // Get public admins list
-app.get('/api/admins', (req, res) => {
-  const safeAdmins = db.admins.map(({ password, ...rest }) => rest);
-  res.json(safeAdmins);
+app.get('/api/admins', async (req, res) => {
+  try {
+    const allAdmins = await Storage.getAdmins();
+    const safeAdmins = allAdmins.map(({ password, ...rest }) => rest);
+    res.json(safeAdmins);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Create Admin (Owner only)
-app.post('/api/admins', (req, res) => {
-  const { username, password, nickname, role, tgId } = req.body;
-  if (!username || !password || !nickname) {
-    return res.status(400).json({ error: 'Заполните логин, пароль и никнейм' });
+app.post('/api/admins', async (req, res) => {
+  try {
+    const { username, password, nickname, role, tgId } = req.body;
+    if (!username || !password || !nickname) {
+      return res.status(400).json({ error: 'Заполните логин, пароль и никнейм' });
+    }
+
+    const allAdmins = await Storage.getAdmins();
+    // Check if username already exists
+    if (allAdmins.find(a => a.username.toLowerCase() === username.toLowerCase())) {
+      return res.status(400).json({ error: 'Администратор с таким логином уже существует' });
+    }
+
+    const newAdmin = {
+      id: 'admin_' + Math.random().toString(36).substr(2, 9),
+      username,
+      password,
+      nickname,
+      role: role || 'Администратор',
+      aboutMe: 'Новый администратор',
+      hobbies: '',
+      photoUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200',
+      musicUrl: '',
+      tgId: tgId || ''
+    };
+
+    await Storage.createAdmin(newAdmin);
+
+    const { password: _, ...safeAdmin } = newAdmin;
+    res.json(safeAdmin);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
-
-  // Check if username already exists
-  if (db.admins.find(a => a.username.toLowerCase() === username.toLowerCase())) {
-    return res.status(400).json({ error: 'Администратор с таким логином уже существует' });
-  }
-
-  const newAdmin: Admin = {
-    id: 'admin_' + Math.random().toString(36).substr(2, 9),
-    username,
-    password,
-    nickname,
-    role: role || 'Администратор',
-    aboutMe: 'Новый администратор',
-    hobbies: '',
-    photoUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200',
-    musicUrl: '',
-    tgId: tgId || ''
-  };
-
-  db.admins.push(newAdmin);
-  saveDb();
-
-  const { password: _, ...safeAdmin } = newAdmin;
-  res.json(safeAdmin);
 });
 
 // Update Admin (Self or Owner)
-app.put('/api/admins/:id', (req, res) => {
-  const { id } = req.params;
-  const { nickname, role, aboutMe, hobbies, photoUrl, musicUrl, tgId, password } = req.body;
+app.put('/api/admins/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nickname, role, aboutMe, hobbies, photoUrl, musicUrl, tgId, password } = req.body;
 
-  const adminIndex = db.admins.findIndex(a => a.id === id);
-  if (adminIndex === -1) {
-    return res.status(404).json({ error: 'Администратор не найден' });
+    const admin = await Storage.getAdminById(id);
+    if (!admin) {
+      return res.status(404).json({ error: 'Администратор не найден' });
+    }
+
+    const updateFields: any = {};
+    if (nickname !== undefined) updateFields.nickname = nickname;
+    if (role !== undefined) updateFields.role = role;
+    if (aboutMe !== undefined) updateFields.aboutMe = aboutMe;
+    if (hobbies !== undefined) updateFields.hobbies = hobbies;
+    if (photoUrl !== undefined) updateFields.photoUrl = photoUrl;
+    if (musicUrl !== undefined) updateFields.musicUrl = musicUrl;
+    if (tgId !== undefined) updateFields.tgId = tgId;
+    if (password !== undefined && password !== '') updateFields.password = password;
+
+    const updatedAdmin = await Storage.updateAdmin(id, updateFields);
+
+    const { password: _, ...safeAdmin } = updatedAdmin as any;
+    res.json(safeAdmin);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
-
-  const admin = db.admins[adminIndex];
-  if (nickname !== undefined) admin.nickname = nickname;
-  if (role !== undefined) admin.role = role;
-  if (aboutMe !== undefined) admin.aboutMe = aboutMe;
-  if (hobbies !== undefined) admin.hobbies = hobbies;
-  if (photoUrl !== undefined) admin.photoUrl = photoUrl;
-  if (musicUrl !== undefined) admin.musicUrl = musicUrl;
-  if (tgId !== undefined) admin.tgId = tgId;
-  if (password !== undefined && password !== '') admin.password = password;
-
-  db.admins[adminIndex] = admin;
-  saveDb();
-
-  const { password: _, ...safeAdmin } = admin;
-  res.json(safeAdmin);
 });
 
 // Delete Admin (Owner only)
-app.delete('/api/admins/:id', (req, res) => {
-  const { id } = req.params;
-  if (id === 'owner') {
-    return res.status(400).json({ error: 'Нельзя удалить главного владельца' });
-  }
+app.delete('/api/admins/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (id === 'owner') {
+      return res.status(400).json({ error: 'Нельзя удалить главного владельца' });
+    }
 
-  const adminIndex = db.admins.findIndex(a => a.id === id);
-  if (adminIndex === -1) {
-    return res.status(404).json({ error: 'Администратор не найден' });
-  }
+    const admin = await Storage.getAdminById(id);
+    if (!admin) {
+      return res.status(404).json({ error: 'Администратор не найден' });
+    }
 
-  db.admins.splice(adminIndex, 1);
-  saveDb();
-  res.json({ success: true });
+    await Storage.deleteAdmin(id);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Submit a Take
 app.post('/api/takes', async (req, res) => {
-  const { type, content, imageUrl, targetAdminId } = req.body;
-  if (!content) {
-    return res.status(400).json({ error: 'Текст тейка обязателен' });
-  }
-
-  const newTake: Take = {
-    id: 'take_' + Math.random().toString(36).substr(2, 9),
-    type: type || 'take',
-    content,
-    imageUrl,
-    targetAdminId: targetAdminId || 'all',
-    status: 'pending',
-    createdAt: new Date().toISOString(),
-    dialogue: []
-  };
-
-  db.takes.push(newTake);
-  saveDb();
-
-  // Telegram Alert Trigger
-  const typeLabel = newTake.type === 'take' ? 'Тейк 💬' : 'Идея 💡';
-  let targetName = 'Все администраторы';
-  let targetTgId = '';
-
-  if (targetAdminId && targetAdminId !== 'all') {
-    const targetAdmin = db.admins.find(a => a.id === targetAdminId);
-    if (targetAdmin) {
-      targetName = targetAdmin.nickname;
-      targetTgId = targetAdmin.tgId;
+  try {
+    const { type, content, imageUrl, targetAdminId } = req.body;
+    if (!content) {
+      return res.status(400).json({ error: 'Текст тейка обязателен' });
     }
-  } else {
-    // Target Owner tgId for general takes
-    const owner = db.admins.find(a => a.id === 'owner');
-    if (owner) {
-      targetTgId = owner.tgId;
+
+    const newTake = {
+      id: 'take_' + Math.random().toString(36).substr(2, 9),
+      type: type || 'take',
+      content,
+      imageUrl: imageUrl || null,
+      targetAdminId: targetAdminId || 'all',
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      dialogue: []
+    };
+
+    await Storage.createTake(newTake);
+
+    // Telegram Alert Trigger
+    const typeLabel = newTake.type === 'take' ? 'Тейк 💬' : 'Идея 💡';
+    let targetName = 'Все администраторы';
+    let targetTgId = '';
+
+    const allAdmins = await Storage.getAdmins();
+
+    if (targetAdminId && targetAdminId !== 'all') {
+      const targetAdmin = allAdmins.find(a => a.id === targetAdminId);
+      if (targetAdmin) {
+        targetName = targetAdmin.nickname;
+        targetTgId = targetAdmin.tgId;
+      }
+    } else {
+      // Target Owner tgId for general takes
+      const owner = allAdmins.find(a => a.id === 'owner');
+      if (owner) {
+        targetTgId = owner.tgId;
+      }
     }
-  }
 
-  if (targetTgId) {
-    const text = `<b>🆕 ПОЛУЧЕН НОВЫЙ ТЕЙК!</b>\n\n` +
-      `<b>Тип:</b> ${typeLabel}\n` +
-      `<b>Адресат:</b> ${targetName}\n` +
-      `<b>Содержание:</b>\n<i>${content}</i>\n` +
-      (imageUrl ? `\n🖼️ <i>Прикреплено изображение</i>` : '') +
-      `\n\n🔗 <i>Откройте панель администрирования для ответа!</i>`;
-    await notifyTelegram(targetTgId, text);
-  }
+    if (targetTgId) {
+      const text = `<b>🆕 ПОЛУЧЕН НОВЫЙ ТЕЙК!</b>\n\n` +
+        `<b>Тип:</b> ${typeLabel}\n` +
+        `<b>Адресат:</b> ${targetName}\n` +
+        `<b>Содержание:</b>\n<i>${content}</i>\n` +
+        (imageUrl ? `\n🖼️ <i>Прикреплено изображение</i>` : '') +
+        `\n\n🔗 <i>Откройте панель администрирования для ответа!</i>`;
+      await notifyTelegram(targetTgId, text);
+    }
 
-  res.json(newTake);
+    res.json(newTake);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Get Takes
-app.get('/api/takes', (req, res) => {
-  // Query parameters can filter by admin ID
-  const { adminId } = req.query;
-  if (!adminId) {
-    return res.json(db.takes);
-  }
+app.get('/api/takes', async (req, res) => {
+  try {
+    const { adminId } = req.query;
+    const allTakes = await Storage.getTakes();
 
-  // Filter takes visible to specific admin:
-  // - Targeted to them specifically
-  // - Or targeted to "all" (anyone can view/take)
-  const visibleTakes = db.takes.filter(
-    t => t.targetAdminId === 'all' || t.targetAdminId === adminId || t.takenBy === adminId
-  );
-  res.json(visibleTakes);
+    if (!adminId) {
+      return res.json(allTakes);
+    }
+
+    // Filter takes visible to specific admin
+    const visibleTakes = allTakes.filter(
+      t => t.targetAdminId === 'all' || t.targetAdminId === adminId || t.takenBy === adminId
+    );
+    res.json(visibleTakes);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Claim a general Take
 app.post('/api/takes/:id/claim', async (req, res) => {
-  const { id } = req.params;
-  const { adminId } = req.body;
+  try {
+    const { id } = req.params;
+    const { adminId } = req.body;
 
-  if (!adminId) {
-    return res.status(400).json({ error: 'ID администратора обязателен' });
+    if (!adminId) {
+      return res.status(400).json({ error: 'ID администратора обязателен' });
+    }
+
+    const take = await Storage.getTakeById(id);
+    if (!take) {
+      return res.status(404).json({ error: 'Тейк не найден' });
+    }
+
+    if (take.targetAdminId !== 'all') {
+      return res.status(400).json({ error: 'Этот тейк уже персональный' });
+    }
+
+    const updated = await Storage.updateTake(id, {
+      status: 'taken',
+      takenBy: adminId,
+      targetAdminId: adminId
+    });
+
+    // Inform admin via telegram that they took the take
+    const allAdmins = await Storage.getAdmins();
+    const claimant = allAdmins.find(a => a.id === adminId);
+    const owner = allAdmins.find(a => a.id === 'owner');
+
+    if (claimant && owner && owner.tgId) {
+      const text = `<b>✅ Тейк взят в работу!</b>\n\n` +
+        `<b>Администратор:</b> ${claimant.nickname}\n` +
+        `<b>Содержание тейка:</b>\n<i>${take.content}</i>`;
+      await notifyTelegram(owner.tgId, text);
+    }
+
+    res.json(updated);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
-
-  const takeIndex = db.takes.findIndex(t => t.id === id);
-  if (takeIndex === -1) {
-    return res.status(404).json({ error: 'Тейк не найден' });
-  }
-
-  const take = db.takes[takeIndex];
-  if (take.targetAdminId !== 'all') {
-    return res.status(400).json({ error: 'Этот тейк уже персональный' });
-  }
-
-  take.status = 'taken';
-  take.takenBy = adminId;
-  take.targetAdminId = adminId; // move to admin's private folder
-  db.takes[takeIndex] = take;
-  saveDb();
-
-  // Inform admin via telegram that they took the take
-  const claimant = db.admins.find(a => a.id === adminId);
-  const owner = db.admins.find(a => a.id === 'owner');
-
-  if (claimant && owner && owner.tgId) {
-    const text = `<b>✅ Тейк взят в работу!</b>\n\n` +
-      `<b>Администратор:</b> ${claimant.nickname}\n` +
-      `<b>Содержание тейка:</b>\n<i>${take.content}</i>`;
-    await notifyTelegram(owner.tgId, text);
-  }
-
-  res.json(take);
 });
 
 // Add message to Dialogue (chat inside a take)
 app.post('/api/takes/:id/dialogue', async (req, res) => {
-  const { id } = req.params;
-  const { sender, text } = req.body; // sender: 'user' | 'admin'
+  try {
+    const { id } = req.params;
+    const { sender, text } = req.body; // sender: 'user' | 'admin'
 
-  if (!text || !sender) {
-    return res.status(400).json({ error: 'Отправитель и текст сообщения обязательны' });
-  }
+    if (!text || !sender) {
+      return res.status(400).json({ error: 'Отправитель и текст сообщения обязательны' });
+    }
 
-  const takeIndex = db.takes.findIndex(t => t.id === id);
-  if (takeIndex === -1) {
-    return res.status(404).json({ error: 'Тейк не найден' });
-  }
+    const take = await Storage.getTakeById(id);
+    if (!take) {
+      return res.status(404).json({ error: 'Тейк не найден' });
+    }
 
-  const take = db.takes[takeIndex];
-  if (!take.dialogue) take.dialogue = [];
+    const dialogue = take.dialogue || [];
+    dialogue.push({
+      sender,
+      text,
+      createdAt: new Date().toISOString()
+    });
 
-  take.dialogue.push({
-    sender,
-    text,
-    createdAt: new Date().toISOString()
-  });
+    const updated = await Storage.updateTake(id, { dialogue });
 
-  db.takes[takeIndex] = take;
-  saveDb();
-
-  // Notify target admin on Telegram if user sends a message
-  if (sender === 'user') {
-    const targetAdminId = take.takenBy || take.targetAdminId;
-    if (targetAdminId && targetAdminId !== 'all') {
-      const targetAdmin = db.admins.find(a => a.id === targetAdminId);
-      if (targetAdmin && targetAdmin.tgId) {
-        const textMsg = `<b>💬 НОВОЕ СООБЩЕНИЕ В ТЕЙКЕ!</b>\n\n` +
-          `От пользователя в чате тейка:\n` +
-          `<i>"${text}"</i>`;
-        await notifyTelegram(targetAdmin.tgId, textMsg);
+    // Notify target admin on Telegram if user sends a message
+    if (sender === 'user') {
+      const targetAdminId = take.takenBy || take.targetAdminId;
+      if (targetAdminId && targetAdminId !== 'all') {
+        const allAdmins = await Storage.getAdmins();
+        const targetAdmin = allAdmins.find(a => a.id === targetAdminId);
+        if (targetAdmin && targetAdmin.tgId) {
+          const textMsg = `<b>💬 НОВОЕ СООБЩЕНИЕ В ТЕЙКЕ!</b>\n\n` +
+            `От пользователя в чате тейка:\n` +
+            `<i>"${text}"</i>`;
+          await notifyTelegram(targetAdmin.tgId, textMsg);
+        }
       }
     }
-  }
 
-  res.json(take);
+    res.json(updated);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Submit a Survey (Anketa)
 app.post('/api/surveys', async (req, res) => {
-  const { source, sphere, age, roleInterest, helpDescription } = req.body;
+  try {
+    const { source, sphere, age, roleInterest, helpDescription } = req.body;
 
-  if (!source || !sphere || !age || !roleInterest || !helpDescription) {
-    return res.status(400).json({ error: 'Все поля анкеты обязательны' });
+    if (!source || !sphere || !age || !roleInterest || !helpDescription) {
+      return res.status(400).json({ error: 'Все поля анкеты обязательны' });
+    }
+
+    const newSurvey = {
+      id: 'survey_' + Math.random().toString(36).substr(2, 9),
+      source,
+      sphere,
+      age: Number(age),
+      roleInterest,
+      helpDescription,
+      createdAt: new Date().toISOString()
+    };
+
+    await Storage.createSurvey(newSurvey);
+
+    // Telegram alert to Owner
+    const allAdmins = await Storage.getAdmins();
+    const owner = allAdmins.find(a => a.id === 'owner');
+    if (owner && owner.tgId) {
+      const tgText = `<b>📝 ПОЛУЧЕНА НОВАЯ АНКЕТА В КОМАНДУ!</b>\n\n` +
+        `<b>1. Откуда узнали:</b> ${source}\n` +
+        `<b>2. Сфера деятельности:</b> ${sphere}\n` +
+        `<b>3. Возраст:</b> ${age}\n` +
+        `<b>4. Чем хотят заниматься:</b> ${roleInterest}\n` +
+        `<b>5. Как готовы помочь:</b>\n<i>${helpDescription}</i>\n\n` +
+        `💻 <i>Проверьте панель владельца для просмотра всех заявок!</i>`;
+      await notifyTelegram(owner.tgId, tgText);
+    }
+
+    res.json(newSurvey);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
-
-  const newSurvey: Survey = {
-    id: 'survey_' + Math.random().toString(36).substr(2, 9),
-    source,
-    sphere,
-    age: Number(age),
-    roleInterest,
-    helpDescription,
-    createdAt: new Date().toISOString()
-  };
-
-  db.surveys.push(newSurvey);
-  saveDb();
-
-  // Telegram alert to Owner
-  const owner = db.admins.find(a => a.id === 'owner');
-  if (owner && owner.tgId) {
-    const tgText = `<b>📝 ПОЛУЧЕНА НОВАЯ АНКЕТА В КОМАНДУ!</b>\n\n` +
-      `<b>1. Откуда узнали:</b> ${source}\n` +
-      `<b>2. Сфера деятельности:</b> ${sphere}\n` +
-      `<b>3. Возраст:</b> ${age}\n` +
-      `<b>4. Чем хотят заниматься:</b> ${roleInterest}\n` +
-      `<b>5. Как готовы помочь:</b>\n<i>${helpDescription}</i>\n\n` +
-      `💻 <i>Проверьте панель владельца для просмотра всех заявок!</i>`;
-    await notifyTelegram(owner.tgId, tgText);
-  }
-
-  res.json(newSurvey);
 });
 
 // Get Surveys (Owner/Admin restricted)
-app.get('/api/surveys', (req, res) => {
-  res.json(db.surveys);
+app.get('/api/surveys', async (req, res) => {
+  try {
+    const allSurveys = await Storage.getSurveys();
+    res.json(allSurveys);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Get Prices
-app.get('/api/prices', (req, res) => {
-  res.json(db.prices);
+app.get('/api/prices', async (req, res) => {
+  try {
+    const allPrices = await Storage.getPrices();
+    res.json(allPrices);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Create/Update/Delete Prices (Owner Only)
+app.post('/api/prices', async (req, res) => {
+  try {
+    const { title, price, description, adminId } = req.body;
+    if (adminId !== 'owner') {
+      return res.status(403).json({ error: 'Только владелец может настраивать цены' });
+    }
+    if (!title || !price || !description) {
+      return res.status(400).json({ error: 'Все поля цены обязательны' });
+    }
+
+    const newPrice = {
+      id: 'p_' + Math.random().toString(36).substr(2, 9),
+      title,
+      price,
+      description
+    };
+
+    await Storage.createPrice(newPrice);
+    res.json(newPrice);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/prices/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, price, description, adminId } = req.body;
+    if (adminId !== 'owner') {
+      return res.status(403).json({ error: 'Только владелец может настраивать цены' });
+    }
+
+    const updated = await Storage.updatePrice(id, { title, price, description });
+    res.json(updated);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/prices/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { adminId } = req.body;
+    if (adminId !== 'owner') {
+      return res.status(403).json({ error: 'Только владелец может настраивать цены' });
+    }
+
+    await Storage.deletePrice(id);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Get Unions
-app.get('/api/unions', (req, res) => {
-  res.json(db.unions);
+app.get('/api/unions', async (req, res) => {
+  try {
+    const allUnions = await Storage.getUnions();
+    res.json(allUnions);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Create/Update/Delete Unions (Owner Only)
+app.post('/api/unions', async (req, res) => {
+  try {
+    const { name, link, description, adminId } = req.body;
+    if (adminId !== 'owner') {
+      return res.status(403).json({ error: 'Только владелец может настраивать союзы' });
+    }
+    if (!name || !link || !description) {
+      return res.status(400).json({ error: 'Все поля союза обязательны' });
+    }
+
+    const newUnion = {
+      id: 'u_' + Math.random().toString(36).substr(2, 9),
+      name,
+      link,
+      description
+    };
+
+    await Storage.createUnion(newUnion);
+    res.json(newUnion);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/unions/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, link, description, adminId } = req.body;
+    if (adminId !== 'owner') {
+      return res.status(403).json({ error: 'Только владелец может настраивать союзы' });
+    }
+
+    const updated = await Storage.updateUnion(id, { name, link, description });
+    res.json(updated);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/unions/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { adminId } = req.body;
+    if (adminId !== 'owner') {
+      return res.status(403).json({ error: 'Только владелец может настраивать союзы' });
+    }
+
+    await Storage.deleteUnion(id);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ---------------- VITE MIDDLEWARE SETUP ----------------
 
 async function startServer() {
+  // Initialize Storage (Database with automatic fallback)
+  await Storage.init();
+
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },

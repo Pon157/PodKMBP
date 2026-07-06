@@ -1,0 +1,59 @@
+import { pgTable, text, integer, timestamp, jsonb } from 'drizzle-orm/pg-core';
+
+// 1. Admins Table
+export const admins = pgTable('admins', {
+  id: text('id').primaryKey(), // Using text to match existing IDs like 'owner', 'kibo', and generated IDs
+  username: text('username').notNull().unique(),
+  password: text('password').notNull(),
+  nickname: text('nickname').notNull(),
+  role: text('role').notNull(),
+  aboutMe: text('about_me').notNull().default(''),
+  hobbies: text('hobbies').notNull().default(''),
+  photoUrl: text('photo_url').notNull().default(''),
+  musicUrl: text('music_url').notNull().default(''),
+  tgId: text('tg_id').notNull().default(''),
+});
+
+// 2. Takes (Takes and Ideas) Table
+export const takes = pgTable('takes', {
+  id: text('id').primaryKey(),
+  type: text('type').notNull(), // 'take' | 'idea'
+  content: text('content').notNull(),
+  imageUrl: text('image_url'),
+  targetAdminId: text('target_admin_id').notNull().default('all'),
+  status: text('status').notNull().default('pending'), // 'pending' | 'taken' | 'resolved'
+  takenBy: text('taken_by'),
+  createdAt: text('created_at').notNull(),
+  dialogue: jsonb('dialogue').$type<Array<{
+    sender: 'user' | 'admin';
+    text: string;
+    createdAt: string;
+  }>>().default([]),
+});
+
+// 3. Surveys Table
+export const surveys = pgTable('surveys', {
+  id: text('id').primaryKey(),
+  source: text('source').notNull(),
+  sphere: text('sphere').notNull(),
+  age: integer('age').notNull(),
+  roleInterest: text('role_interest').notNull(),
+  helpDescription: text('help_description').notNull(),
+  createdAt: text('created_at').notNull(),
+});
+
+// 4. Prices Table (Now completely editable in Admin Panel)
+export const prices = pgTable('prices', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  price: text('price').notNull(),
+  description: text('description').notNull(),
+});
+
+// 5. Unions Table
+export const unions = pgTable('unions', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  link: text('link').notNull(),
+  description: text('description').notNull(),
+});

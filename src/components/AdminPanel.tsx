@@ -56,12 +56,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onLogout,
   activeUsersCount,
 }) => {
-  const [activeTab, setActiveTab] = useState<'profile' | 'general_takes' | 'personal_takes' | 'surveys' | 'manage_admins'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'general_takes' | 'personal_takes' | 'surveys' | 'manage_admins' | 'manage_prices'>('profile');
   
   // Data States
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [takes, setTakes] = useState<Take[]>([]);
   const [surveys, setSurveys] = useState<Survey[]>([]);
+  const [pricesList, setPricesList] = useState<any[]>([]);
+  const [dbStatus, setDbStatus] = useState<{ postgresMode: boolean; status: string } | null>(null);
   
   // Form States for edit profile
   const [nickname, setNickname] = useState(currentAdmin.nickname);
@@ -92,10 +94,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   useEffect(() => {
     fetchAdmins();
     fetchTakes();
+    fetchDbStatus();
     if (isOwner) {
       fetchSurveys();
+      fetchPrices();
     }
   }, [currentAdmin, isOwner]);
+
+  const fetchDbStatus = async () => {
+    try {
+      const res = await fetch('/api/db-status');
+      const data = await res.json();
+      setDbStatus(data);
+    } catch (err) {
+      console.error('Failed to fetch db status', err);
+    }
+  };
 
   const fetchAdmins = async () => {
     try {
@@ -125,6 +139,83 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     } catch (err) {
       console.error('Failed to fetch surveys', err);
     }
+  };
+
+  // Price management states & functions
+  const [priceTitle, setPriceTitle] = useState('');
+  const [priceValue, setPriceValue] = useState('');
+  const [priceDescription, setPriceDescription] = useState('');
+  const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
+
+  const fetchPrices = async () => {
+    try {
+      const res = await fetch('/api/prices');
+      const data = await res.json();
+      setPricesList(data);
+    } catch (err) {
+      console.error('Failed to fetch prices', err);
+    }
+  };
+
+  const handleSavePrice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!priceTitle || !priceValue || !priceDescription) {
+      showStatus('Заполните все поля цены', 'error');
+      return;
+    }
+    try {
+      const url = editingPriceId ? `/api/prices/${editingPriceId}` : '/api/prices';
+      const method = editingPriceId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: priceTitle,
+          price: priceValue,
+          description: priceDescription,
+          adminId: currentAdmin.id
+        })
+      });
+
+      if (res.ok) {
+        showStatus(editingPriceId ? 'Услуга успешно обновлена!' : 'Услуга успешно добавлена!', 'success');
+        setPriceTitle('');
+        setPriceValue('');
+        setPriceDescription('');
+        setEditingPriceId(null);
+        fetchPrices();
+      } else {
+        showStatus('Ошибка сохранения услуги', 'error');
+      }
+    } catch (err) {
+      showStatus('Произошла ошибка при сохранении цены', 'error');
+    }
+  };
+
+  const handleDeletePrice = async (id: string) => {
+    if (!window.confirm('Удалить эту услугу из прайса?')) return;
+    try {
+      const res = await fetch(`/api/prices/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminId: currentAdmin.id })
+      });
+      if (res.ok) {
+        showStatus('Услуга удалена из прайса', 'success');
+        fetchPrices();
+      } else {
+        showStatus('Ошибка удаления услуги', 'error');
+      }
+    } catch (err) {
+      showStatus('Произошла ошибка при удалении', 'error');
+    }
+  };
+
+  const handleStartEditPrice = (priceItem: any) => {
+    setEditingPriceId(priceItem.id);
+    setPriceTitle(priceItem.title);
+    setPriceValue(priceItem.price);
+    setPriceDescription(priceItem.description);
   };
 
   const showStatus = (text: string, type: 'success' | 'error') => {
@@ -284,6 +375,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {/* Database connection status badge */}
+            <div className="bg-wine border border-gummy/40 rounded-xl px-4 py-2 flex items-center gap-2.5 shadow-lg">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${dbStatus?.postgresMode ? 'bg-green-400' : 'bg-orange-400'}`}></span>
+                <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${dbStatus?.postgresMode ? 'bg-green-500' : 'bg-orange-500'}`}></span>
+              </span>
+              <div className="text-left font-mono">
+                <span className="block text-[10px] leading-none uppercase text-gummy/50 font-bold">База данных</span>
+                <span className="text-xs font-bold text-white">{dbStatus?.postgresMode ? 'PostgreSQL' : 'Локальный JSON'}</span>
+              </div>
+            </div>
+
             {/* Real-time active users indicator */}
             <div className="bg-wine border border-gummy/40 rounded-xl px-4 py-2 flex items-center gap-3 shadow-lg">
               <span className="relative flex h-3.5 w-3.5">
@@ -390,6 +493,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   }`}
                 >
                   <Settings size={18} /> Управление админами
+                </button>
+
+                <button
+                  id="tab-manage-prices"
+                  onClick={() => setActiveTab('manage_prices')}
+                  className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 text-sm font-semibold transition-all ${
+                    activeTab === 'manage_prices' ? 'bg-gummy text-wine shadow-lg' : 'hover:bg-wine-dark/50'
+                  }`}
+                >
+                  <Settings size={18} /> Настройка цен (Прайс)
                 </button>
               </>
             )}
@@ -870,6 +983,134 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         )}
                       </div>
                     ))}
+                  </div>
+                </div>
+
+              </div>
+            )}
+
+            {activeTab === 'manage_prices' && isOwner && (
+              <div className="bg-wine-dark/20 border border-gummy/20 rounded-xl p-6">
+                
+                {/* Create/Edit Price Form */}
+                <div className="border-b border-gummy/20 pb-8 mb-8">
+                  <h2 className="text-xl font-display font-bold text-white mb-4 flex items-center gap-2">
+                    {editingPriceId ? <Edit2 size={20} /> : <Plus size={20} />} 
+                    {editingPriceId ? 'Редактировать услугу прайса' : 'Добавить новую услугу в прайс'}
+                  </h2>
+
+                  <form onSubmit={handleSavePrice} className="flex flex-col gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] uppercase font-bold text-gummy/70">Название услуги *</label>
+                        <input
+                          id="price-form-title"
+                          type="text"
+                          value={priceTitle}
+                          onChange={(e) => setPriceTitle(e.target.value)}
+                          placeholder="Например: Кастомный арт маскота"
+                          className="bg-wine border-2 border-gummy/20 rounded-xl px-3 py-2.5 text-white outline-none focus:border-gummy text-xs"
+                          required
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] uppercase font-bold text-gummy/70">Стоимость (с валютой) *</label>
+                        <input
+                          id="price-form-value"
+                          type="text"
+                          value={priceValue}
+                          onChange={(e) => setPriceValue(e.target.value)}
+                          placeholder="Например: 500 ₽"
+                          className="bg-wine border-2 border-gummy/20 rounded-xl px-3 py-2.5 text-white outline-none focus:border-gummy text-xs"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] uppercase font-bold text-gummy/70">Описание услуги *</label>
+                      <textarea
+                        id="price-form-description"
+                        value={priceDescription}
+                        onChange={(e) => setPriceDescription(e.target.value)}
+                        placeholder="Кратко расскажите, что входит в эту стоимость..."
+                        rows={3}
+                        className="bg-wine border-2 border-gummy/20 rounded-xl px-3 py-2.5 text-white outline-none focus:border-gummy text-xs resize-none"
+                        required
+                      />
+                    </div>
+
+                    <div className="flex gap-3 justify-end mt-2">
+                      {editingPriceId && (
+                        <button
+                          id="price-form-cancel"
+                          type="button"
+                          onClick={() => {
+                            setEditingPriceId(null);
+                            setPriceTitle('');
+                            setPriceValue('');
+                            setPriceDescription('');
+                          }}
+                          className="bg-wine-dark/60 text-gummy border border-gummy/30 px-4 py-2 rounded-xl text-xs hover:bg-wine-dark transition-all"
+                        >
+                          Отмена
+                        </button>
+                      )}
+                      <button
+                        id="price-form-submit"
+                        type="submit"
+                        className="bg-gummy text-wine font-bold px-6 py-2.5 rounded-xl hover:bg-white hover:scale-105 transition-all text-xs shadow-md"
+                      >
+                        {editingPriceId ? 'Сохранить изменения' : 'Добавить услугу'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* Prices list view */}
+                <div>
+                  <h2 className="text-xl font-display font-bold text-white mb-4 flex items-center gap-2">
+                    <Settings size={20} /> Текущие цены в прайсе
+                  </h2>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    {pricesList.length === 0 ? (
+                      <p className="text-xs text-gummy/50 text-center py-6">Загрузка или прайс-лист пуст...</p>
+                    ) : (
+                      pricesList.map((item) => (
+                        <div key={item.id} className="bg-wine-dark/50 border border-gummy/20 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3">
+                              <h4 className="text-sm font-bold text-white">{item.title}</h4>
+                              <span className="text-xs font-bold text-gummy bg-wine/60 border border-gummy/30 px-2 py-0.5 rounded-full">
+                                {item.price}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gummy/80 mt-1">{item.description}</p>
+                          </div>
+
+                          <div className="flex gap-2 self-stretch md:self-auto justify-end">
+                            <button
+                              id={`edit-price-${item.id}`}
+                              onClick={() => handleStartEditPrice(item)}
+                              className="w-8 h-8 rounded-lg bg-gummy/20 hover:bg-gummy hover:text-wine border border-gummy/30 text-gummy flex items-center justify-center transition-all shadow-md"
+                              title="Редактировать"
+                            >
+                              <Edit2 size={12} />
+                            </button>
+                            <button
+                              id={`delete-price-${item.id}`}
+                              onClick={() => handleDeletePrice(item.id)}
+                              className="w-8 h-8 rounded-lg bg-red-950/40 hover:bg-red-900/80 border border-red-500/30 text-red-400 flex items-center justify-center transition-all shadow-md"
+                              title="Удалить"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
 
