@@ -5,7 +5,7 @@ import { createServer as createViteServer } from 'vite';
 import { Storage } from './src/db/storage.ts';
 
 const app = express();
-const PORT = 3000;
+const PORT = 6776;
 
 // Setup uploads folder
 const uploadsDir = path.join(process.cwd(), 'uploads');
