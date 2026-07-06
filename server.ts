@@ -4,7 +4,7 @@ import { createServer as createViteServer } from 'vite';
 import { Storage } from './src/db/storage.ts';
 
 const app = express();
-const PORT = 3000;
+const PORT = 6776;
 
 // Middleware
 app.use(express.json({ limit: '10mb' }));
