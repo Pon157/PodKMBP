@@ -218,6 +218,36 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setPriceDescription(priceItem.description);
   };
 
+  const handleFileUpload = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64Data = reader.result as string;
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              filename: file.name,
+              base64Data,
+            }),
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            reject(new Error(err.error || 'Ошибка при загрузке файла'));
+            return;
+          }
+          const data = await res.json();
+          resolve(data.url);
+        } catch (e) {
+          reject(e);
+        }
+      };
+      reader.onerror = () => reject(new Error('Ошибка чтения файла'));
+      reader.readAsDataURL(file);
+    });
+  };
+
   const showStatus = (text: string, type: 'success' | 'error') => {
     setMessage({ text, type });
     setTimeout(() => setMessage(null), 4000);
@@ -577,26 +607,70 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-semibold uppercase text-gummy/70">Ссылка на фото (JPG/PNG)</label>
-                      <input
-                        id="profile-photo"
-                        type="url"
-                        value={photoUrl}
-                        onChange={(e) => setPhotoUrl(e.target.value)}
-                        className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white focus:border-gummy outline-none transition-all text-sm"
-                        placeholder="https://example.com/photo.jpg"
-                      />
+                      <div className="flex gap-2 items-center">
+                        <input
+                          id="profile-photo"
+                          type="text"
+                          value={photoUrl}
+                          onChange={(e) => setPhotoUrl(e.target.value)}
+                          className="flex-1 bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white focus:border-gummy outline-none transition-all text-sm"
+                          placeholder="https://example.com/photo.jpg"
+                        />
+                        <label className="bg-gummy hover:bg-white text-wine font-bold px-4 py-2.5 rounded-xl cursor-pointer transition-all text-xs flex items-center justify-center shrink-0">
+                          Загрузить 🖼️
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              try {
+                                showStatus('Загрузка фото...', 'success');
+                                const url = await handleFileUpload(file);
+                                setPhotoUrl(url);
+                                showStatus('Фото успешно загружено!', 'success');
+                              } catch (err: any) {
+                                showStatus(err.message || 'Ошибка загрузки фото', 'error');
+                              }
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
                     </div>
 
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-semibold uppercase text-gummy/70">Прикрепить музыку (MP3 URL)</label>
-                      <input
-                        id="profile-music"
-                        type="url"
-                        value={musicUrl}
-                        onChange={(e) => setMusicUrl(e.target.value)}
-                        className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white focus:border-gummy outline-none transition-all text-sm"
-                        placeholder="https://example.com/audio.mp3"
-                      />
+                      <div className="flex gap-2 items-center">
+                        <input
+                          id="profile-music"
+                          type="text"
+                          value={musicUrl}
+                          onChange={(e) => setMusicUrl(e.target.value)}
+                          className="flex-1 bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white focus:border-gummy outline-none transition-all text-sm"
+                          placeholder="https://example.com/audio.mp3"
+                        />
+                        <label className="bg-gummy hover:bg-white text-wine font-bold px-4 py-2.5 rounded-xl cursor-pointer transition-all text-xs flex items-center justify-center shrink-0">
+                          Загрузить 🎵
+                          <input
+                            type="file"
+                            accept="audio/*"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              try {
+                                showStatus('Загрузка аудио...', 'success');
+                                const url = await handleFileUpload(file);
+                                setMusicUrl(url);
+                                showStatus('Аудио успешно загружено!', 'success');
+                              } catch (err: any) {
+                                showStatus(err.message || 'Ошибка загрузки аудио', 'error');
+                              }
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
                     </div>
                   </div>
 

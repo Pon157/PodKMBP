@@ -1,10 +1,20 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import { Storage } from './src/db/storage.ts';
 
 const app = express();
-const PORT = 6776;
+const PORT = 3000;
+
+// Setup uploads folder
+const uploadsDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(uploadsDir));
 
 // Middleware
 app.use(express.json({ limit: '10mb' }));
@@ -68,6 +78,40 @@ app.get('/api/db-status', (req, res) => {
     status: Storage.isPostgresMode() ? 'Connected to PostgreSQL' : 'Fallback Local JSON',
     error: Storage.getDbError()
   });
+});
+
+// File Upload
+app.post('/api/upload', async (req, res) => {
+  try {
+    const { filename, base64Data } = req.body;
+    if (!filename || !base64Data) {
+      return res.status(400).json({ error: 'Имя файла и данные обязательны' });
+    }
+
+    // Clean base64 data (remove header prefix if present, e.g. "data:image/png;base64,")
+    const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    let buffer: Buffer;
+    let cleanFilename = filename.replace(/[^a-zA-Z0-9.\-_]/g, '_'); // sanitize filename
+    
+    const ext = path.extname(cleanFilename);
+    const base = path.basename(cleanFilename, ext);
+    const uniqueFilename = `${base}_${Date.now()}${ext}`;
+
+    if (matches && matches.length === 3) {
+      buffer = Buffer.from(matches[2], 'base64');
+    } else {
+      buffer = Buffer.from(base64Data, 'base64');
+    }
+
+    const filePath = path.join(uploadsDir, uniqueFilename);
+    await fs.promises.writeFile(filePath, buffer);
+
+    const fileUrl = `/uploads/${uniqueFilename}`;
+    res.json({ url: fileUrl });
+  } catch (err: any) {
+    console.error('File upload error:', err);
+    res.status(500).json({ error: 'Ошибка загрузки файла: ' + err.message });
+  }
 });
 
 // Auth Login

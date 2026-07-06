@@ -356,8 +356,24 @@ const MainInfoPage: React.FC<MainInfoPageProps> = ({ admins, unions }) => {
 interface PricePageProps {
   prices: PriceItem[];
 }
-const PricePage: React.FC<PricePageProps> = ({ prices }) => {
+const PricePage: React.FC<PricePageProps> = ({ prices: initialPrices }) => {
   const navigate = useNavigate();
+  const [prices, setPrices] = useState<PriceItem[]>(initialPrices);
+
+  useEffect(() => {
+    const fetchPrices = async () => {
+      try {
+        const res = await fetch('/api/prices');
+        if (res.ok) {
+          const data = await res.json();
+          setPrices(data);
+        }
+      } catch (err) {
+        console.error('Failed to load prices', err);
+      }
+    };
+    fetchPrices();
+  }, []);
 
   return (
     <PageTransition>
@@ -531,9 +547,25 @@ const SocialsPage: React.FC = () => {
 interface AdminsOverviewPageProps {
   admins: Admin[];
 }
-const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins }) => {
+const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initialAdmins }) => {
   const navigate = useNavigate();
   const [selectedAdmin, setSelectedAdmin] = useState<Admin | null>(null);
+  const [admins, setAdmins] = useState<Admin[]>(initialAdmins);
+
+  useEffect(() => {
+    const fetchAdmins = async () => {
+      try {
+        const res = await fetch('/api/admins');
+        if (res.ok) {
+          const data = await res.json();
+          setAdmins(data);
+        }
+      } catch (err) {
+        console.error('Failed to load admins list', err);
+      }
+    };
+    fetchAdmins();
+  }, []);
 
   return (
     <PageTransition>
@@ -754,10 +786,11 @@ const RulesPage: React.FC = () => {
 interface TakeSubmissionPageProps {
   admins: Admin[];
 }
-const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins }) => {
+const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initialAdmins }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const [admins, setAdmins] = useState<Admin[]>(initialAdmins);
   const [type, setType] = useState<'take' | 'idea'>('take');
   const [content, setContent] = useState('');
   const [imageUrl, setImageUrl] = useState('');
@@ -766,6 +799,53 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Fetch fresh admins on mount
+  useEffect(() => {
+    const fetchAdmins = async () => {
+      try {
+        const res = await fetch('/api/admins');
+        if (res.ok) {
+          const data = await res.json();
+          setAdmins(data);
+        }
+      } catch (err) {
+        console.error('Failed to load admins', err);
+      }
+    };
+    fetchAdmins();
+  }, []);
+
+  // Handle file uploads directly
+  const handleFileUpload = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64Data = reader.result as string;
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              filename: file.name,
+              base64Data,
+            }),
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            reject(new Error(err.error || 'Ошибка при загрузке файла'));
+            return;
+          }
+          const data = await res.json();
+          resolve(data.url);
+        } catch (e) {
+          reject(e);
+        }
+      };
+      reader.onerror = () => reject(new Error('Ошибка чтения файла'));
+      reader.readAsDataURL(file);
+    });
+  };
 
   // Handle pre-selected admin from profile routing
   useEffect(() => {
@@ -930,15 +1010,37 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins }) => {
 
               {/* Optional Image Attachment */}
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold uppercase text-gummy/70">Прикрепить картинку (вставьте URL-ссылку)</label>
-                <input
-                  id="take-image-url"
-                  type="url"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://images.unsplash.com/... (опционально)"
-                  className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white text-xs outline-none focus:border-gummy"
-                />
+                <label className="text-[10px] font-bold uppercase text-gummy/70">Прикрепить картинку / медиа</label>
+                <div className="flex gap-2 items-center">
+                  <input
+                    id="take-image-url"
+                    type="text"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    placeholder="Вставьте ссылку или выберите файл"
+                    className="flex-1 bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white text-xs outline-none focus:border-gummy"
+                  />
+                  <label className="bg-gummy hover:bg-white text-wine font-bold px-4 py-2.5 rounded-xl cursor-pointer transition-all text-xs flex items-center justify-center shrink-0">
+                    Загрузить 🖼️
+                    <input
+                      type="file"
+                      accept="image/*,audio/*,video/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          setErrorMsg('Загрузка файла...');
+                          const url = await handleFileUpload(file);
+                          setImageUrl(url);
+                          setErrorMsg('');
+                        } catch (err: any) {
+                          setErrorMsg(err.message || 'Ошибка загрузки файла');
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
               </div>
 
               <button
@@ -1195,8 +1297,24 @@ const SurveyFormPage: React.FC = () => {
 interface UnionsPageProps {
   unions: UnionItem[];
 }
-const UnionsPage: React.FC<UnionsPageProps> = ({ unions }) => {
+const UnionsPage: React.FC<UnionsPageProps> = ({ unions: initialUnions }) => {
   const navigate = useNavigate();
+  const [unions, setUnions] = useState<UnionItem[]>(initialUnions);
+
+  useEffect(() => {
+    const fetchUnions = async () => {
+      try {
+        const res = await fetch('/api/unions');
+        if (res.ok) {
+          const data = await res.json();
+          setUnions(data);
+        }
+      } catch (err) {
+        console.error('Failed to load unions', err);
+      }
+    };
+    fetchUnions();
+  }, []);
 
   return (
     <PageTransition>
