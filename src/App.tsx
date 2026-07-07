@@ -312,21 +312,37 @@ const PageTransition: React.FC<{ children: React.ReactNode }> = ({ children }) =
 // 1. START PAGE
 const StartPage: React.FC = () => {
   const navigate = useNavigate();
+  const [startImageFailed, setStartImageFailed] = useState(false);
 
   return (
     <PageTransition>
-      <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-wine-dark/40 border-4 border-gummy rounded-3xl p-8 md:p-12 shadow-2xl relative">
+      <div className="max-w-4xl xl:max-w-6xl 2xl:max-w-7xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 xl:gap-16 items-center bg-wine-dark/40 border-4 border-gummy rounded-3xl p-6 sm:p-8 md:p-12 xl:p-16 2xl:p-24 shadow-2xl relative transition-all">
         {/* Mascot on left */}
         <div className="flex justify-center md:justify-end pr-0 md:pr-4">
-          <MascotPlaceholder pose="greeting" size={240} />
+          {!startImageFailed ? (
+            <motion.div
+              animate={{ y: [-6, 6, -6] }}
+              transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+              className="w-full max-w-[200px] sm:max-w-[240px] xl:max-w-[360px] 2xl:max-w-[460px]"
+            >
+              <img
+                src="/mainmenu(start).PNG"
+                alt="Маскот"
+                className="w-full h-auto object-contain drop-shadow-2xl"
+                onError={() => setStartImageFailed(true)}
+              />
+            </motion.div>
+          ) : (
+            <MascotPlaceholder pose="greeting" size={240} className="xl:scale-150 transition-transform" />
+          )}
         </div>
 
         {/* Text bubble and buttons on right */}
-        <div className="flex flex-col items-center md:items-start text-center md:text-left gap-6">
+        <div className="flex flex-col items-center md:items-start text-center md:text-left gap-6 xl:gap-10">
           
           {/* Custom SVG dialogue bubble sketch look */}
-          <div className="relative bg-gummy text-wine p-6 md:p-8 rounded-3xl border-4 border-white shadow-lg max-w-sm">
-            <h2 className="text-xl md:text-2xl font-display font-bold leading-snug">
+          <div className="relative bg-gummy text-wine p-6 md:p-8 xl:p-12 rounded-3xl border-4 border-white shadow-lg max-w-sm xl:max-w-lg 2xl:max-w-xl">
+            <h2 className="text-xl md:text-2xl xl:text-4xl 2xl:text-5xl font-display font-bold leading-snug">
               Хочешь ознакомиться?
             </h2>
             {/* Dialogue Bubble tail pointing to mascot */}
@@ -339,14 +355,14 @@ const StartPage: React.FC = () => {
             <button
               id="start-yes-btn"
               onClick={() => navigate('/info')}
-              className="flex-1 bg-gummy text-wine font-bold text-lg py-4 px-8 rounded-2xl hover:bg-white hover:scale-105 active:scale-95 transition-all shadow-lg border-2 border-transparent hover:border-wine"
+              className="flex-1 bg-gummy text-wine font-bold text-lg xl:text-2xl py-4 xl:py-5 px-8 xl:px-12 rounded-2xl hover:bg-white hover:scale-105 active:scale-95 transition-all shadow-lg border-2 border-transparent hover:border-wine cursor-pointer"
             >
               Да
             </button>
             <button
               id="start-definitely-btn"
               onClick={() => navigate('/info')}
-              className="flex-1 bg-transparent border-4 border-gummy text-gummy font-bold text-lg py-4 px-6 rounded-2xl hover:bg-gummy hover:text-wine hover:scale-105 active:scale-95 transition-all shadow-lg"
+              className="flex-1 bg-transparent border-4 border-gummy text-gummy font-bold text-lg xl:text-2xl py-4 xl:py-5 px-6 xl:px-10 rounded-2xl hover:bg-gummy hover:text-wine hover:scale-105 active:scale-95 transition-all shadow-lg cursor-pointer"
             >
               Точно да
             </button>
@@ -364,102 +380,125 @@ interface MainInfoPageProps {
 }
 const MainInfoPage: React.FC<MainInfoPageProps> = ({ admins, unions }) => {
   const navigate = useNavigate();
+  const [infoImageFailed, setInfoImageFailed] = useState(false);
 
   return (
     <PageTransition>
-      <div className="max-w-5xl w-full flex flex-col gap-8">
+      <div className="max-w-5xl xl:max-w-7xl 2xl:max-w-screen-2xl w-full flex flex-col gap-8 xl:gap-14 2xl:gap-20 transition-all">
         
-        {/* ROW OF 6 CORE BUTTONS */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5 bg-wine-dark/40 border-4 border-gummy rounded-2xl p-4 shadow-xl">
+        {/* ROW OF CORE BUTTONS (now 7 buttons, responsive layout) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-3.5 bg-wine-dark/40 border-4 border-gummy rounded-2xl p-4 shadow-xl">
           <button
             id="nav-price"
             onClick={() => navigate('/price')}
-            className="py-3 px-4 rounded-xl bg-gummy text-wine font-display font-bold text-center hover:bg-white hover:scale-105 transition-all shadow-md text-sm cursor-pointer"
+            className="py-3.5 px-4 rounded-xl bg-gummy/15 hover:bg-gummy border-2 border-gummy/30 hover:border-transparent text-gummy hover:text-wine font-display font-bold text-center hover:scale-105 transition-all shadow-md text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-1.5 duration-200 backdrop-blur-md"
           >
-            Прайс
+            Прайс 💎
           </button>
           <button
             id="nav-socials"
             onClick={() => navigate('/socials')}
-            className="py-3 px-4 rounded-xl bg-gummy text-wine font-display font-bold text-center hover:bg-white hover:scale-105 transition-all shadow-md text-sm cursor-pointer"
+            className="py-3.5 px-4 rounded-xl bg-gummy/15 hover:bg-gummy border-2 border-gummy/30 hover:border-transparent text-gummy hover:text-wine font-display font-bold text-center hover:scale-105 transition-all shadow-md text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-1.5 duration-200 backdrop-blur-md"
           >
-            Соцсети
+            Соцсети 🌐
           </button>
           <button
             id="nav-admin"
             onClick={() => navigate('/admin')}
-            className="py-3 px-4 rounded-xl bg-gummy text-wine font-display font-bold text-center hover:bg-white hover:scale-105 transition-all shadow-md text-sm cursor-pointer"
+            className="py-3.5 px-4 rounded-xl bg-gummy/15 hover:bg-gummy border-2 border-gummy/30 hover:border-transparent text-gummy hover:text-wine font-display font-bold text-center hover:scale-105 transition-all shadow-md text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-1.5 duration-200 backdrop-blur-md"
           >
-            Администрация
+            Администрация 👑
           </button>
           <button
             id="nav-take"
             onClick={() => navigate('/take')}
-            className="py-3 px-4 rounded-xl bg-gummy text-wine font-display font-bold text-center hover:bg-white hover:scale-105 transition-all shadow-md text-sm cursor-pointer"
+            className="py-3.5 px-4 rounded-xl bg-gummy/15 hover:bg-gummy border-2 border-gummy/30 hover:border-transparent text-gummy hover:text-wine font-display font-bold text-center hover:scale-105 transition-all shadow-md text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-1.5 duration-200 backdrop-blur-md animate-pulse"
           >
-            Написать тейк
+            Написать тейк 📝
           </button>
           <a
             id="nav-support"
             href="https://t.me/our_support_channel"
             target="_blank"
             rel="noreferrer"
-            className="py-3 px-4 rounded-xl bg-gummy text-wine font-display font-bold text-center hover:bg-white hover:scale-105 transition-all shadow-md text-sm flex items-center justify-center gap-1"
+            className="py-3.5 px-4 rounded-xl bg-gummy/15 hover:bg-gummy border-2 border-gummy/30 hover:border-transparent text-gummy hover:text-wine font-display font-bold text-center hover:scale-105 transition-all shadow-md text-xs sm:text-sm flex items-center justify-center gap-1.5 duration-200 backdrop-blur-md"
           >
-            Техподдержка <ExternalLink size={13} />
+            Поддержка <ExternalLink size={13} />
           </a>
           <button
             id="nav-anketa"
             onClick={() => navigate('/anketa')}
-            className="py-3 px-4 rounded-xl bg-gummy text-wine font-display font-bold text-center hover:bg-white hover:scale-105 transition-all shadow-md text-sm cursor-pointer"
+            className="py-3.5 px-4 rounded-xl bg-gummy/15 hover:bg-gummy border-2 border-gummy/30 hover:border-transparent text-gummy hover:text-wine font-display font-bold text-center hover:scale-105 transition-all shadow-md text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-1.5 duration-200 backdrop-blur-md"
           >
-            Подать заявку
+            Заявка 📄
+          </button>
+          <button
+            id="nav-unions"
+            onClick={() => navigate('/unions')}
+            className="py-3.5 px-4 rounded-xl bg-gummy/15 hover:bg-gummy border-2 border-gummy/30 hover:border-transparent text-gummy hover:text-wine font-display font-bold text-center hover:scale-105 transition-all shadow-md text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-1.5 duration-200 backdrop-blur-md"
+          >
+            Союзы 🤝
           </button>
         </div>
 
         {/* MASCOT LYING & LOOKING UP AT BUTTONS */}
         <div className="flex justify-center -my-3">
-          <MascotPlaceholder pose="lying" size={200} />
+          {!infoImageFailed ? (
+            <motion.div
+              animate={{ y: [3, -3, 3], rotate: [0, 0.5, -0.5, 0] }}
+              transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+              className="w-full max-w-[200px] xl:max-w-[300px] 2xl:max-w-[360px]"
+            >
+              <img
+                src="/mainmenu(info).png"
+                alt="Маскот Инфо"
+                className="w-full h-auto object-contain drop-shadow-2xl"
+                onError={() => setInfoImageFailed(true)}
+              />
+            </motion.div>
+          ) : (
+            <MascotPlaceholder pose="lying" size={200} className="xl:scale-125 transition-transform" />
+          )}
         </div>
 
         {/* ABOUT INFO & STANDING MASCOT GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-center relative">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 xl:gap-16 items-center relative">
           
           {/* Decorative flying clouds and flowers extending beyond border on the left */}
-          <div className="absolute -left-20 top-1/2 -translate-y-1/2 flex flex-col gap-6 z-0 opacity-45 pointer-events-none hidden xl:flex">
-            <AnimatedCloud size={100} delay={0} />
-            <AnimatedFlower size={55} delay={1.5} />
-            <AnimatedCloud size={80} delay={3} />
-            <AnimatedFlower size={45} delay={0.5} />
+          <div className="absolute -left-24 top-1/2 -translate-y-1/2 flex flex-col gap-6 z-0 opacity-45 pointer-events-none hidden xl:flex">
+            <AnimatedCloud size={120} delay={0} />
+            <AnimatedFlower size={65} delay={1.5} />
+            <AnimatedCloud size={100} delay={3} />
+            <AnimatedFlower size={55} delay={0.5} />
           </div>
 
           {/* Info field in center (span 3 cols) */}
-          <div className="md:col-span-3 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 md:p-8 shadow-xl relative z-10">
-            <span className="text-[10px] uppercase tracking-widest font-mono text-gummy/60 font-bold block mb-1">Информация</span>
-            <h2 className="text-xl md:text-2xl font-display font-bold text-white mb-4">О нас</h2>
-            <p className="text-sm md:text-base text-gummy-light leading-relaxed whitespace-pre-line">
+          <div className="md:col-span-3 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 md:p-10 xl:p-14 2xl:p-20 shadow-xl relative z-10 transition-all">
+            <span className="text-[10px] xl:text-xs uppercase tracking-widest font-mono text-gummy/60 font-bold block mb-1">Информация</span>
+            <h2 className="text-xl md:text-2xl xl:text-4xl 2xl:text-5xl font-display font-bold text-white mb-4">О нас</h2>
+            <p className="text-sm md:text-base xl:text-lg 2xl:text-2xl text-gummy-light leading-relaxed xl:leading-loose whitespace-pre-line">
               ПРИНИМАЕМ СПЛЕТНИ СО ВСЕХ КФ  Наша команда обрабатывает все ваши идеи, анонимные тейки и предложения, чтобы публиковать их яркими и веселыми. 
             </p>
             <div className="mt-4 flex flex-wrap gap-2.5">
-              <span className="text-xs bg-wine/60 border border-gummy/30 px-3 py-1 rounded-full font-semibold">100% Анонимно</span>
-              <span className="text-xs bg-wine/60 border border-gummy/30 px-3 py-1 rounded-full font-semibold">Уважение</span>
+              <span className="text-xs xl:text-sm bg-wine/60 border border-gummy/30 px-3 py-1 xl:px-4 xl:py-1.5 rounded-full font-semibold">100% Анонимно</span>
+              <span className="text-xs xl:text-sm bg-wine/60 border border-gummy/30 px-3 py-1 xl:px-4 xl:py-1.5 rounded-full font-semibold">Уважение</span>
             </div>
           </div>
 
           {/* Standing mascot on the right (span 1 col) */}
-          <div className="flex justify-center md:justify-start z-10">
+          <div className="flex justify-center md:justify-start z-10 xl:scale-130 2xl:scale-150 transition-transform origin-center">
             <MascotPlaceholder pose="neutral" size={170} />
           </div>
         </div>
 
         {/* BOTTOM UNIONS BLOCK: Союз Memory Base */}
-        <div className="bg-wine-dark/60 border-2 border-gummy/40 rounded-2xl p-6 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="bg-wine-dark/60 border-2 border-gummy/40 rounded-2xl p-6 xl:p-10 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4 xl:gap-8 transition-all">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
-              <Shield className="text-gummy" size={18} />
-              <h3 className="font-display font-bold text-white text-lg">Союз Memory Base</h3>
+              <Shield className="text-gummy" size={20} />
+              <h3 className="font-display font-bold text-white text-lg xl:text-2xl 2xl:text-3xl">Союз Memory Base</h3>
             </div>
-            <p className="text-xs text-gummy/80 leading-relaxed">
+            <p className="text-xs xl:text-sm 2xl:text-lg text-gummy/80 leading-relaxed">
               Крупнейшее дружественное сообщество в КМБП по борьбе с мошенничеством. 
               <span className="block mt-1 font-semibold text-gummy">Если вы столкнулись с мошенником, обращайтесь к ним.</span>
             </p>
@@ -469,16 +508,16 @@ const MainInfoPage: React.FC<MainInfoPageProps> = ({ admins, unions }) => {
             href="https://t.me/memory_base"
             target="_blank"
             rel="noreferrer"
-            className="px-5 py-2.5 rounded-xl bg-gummy text-wine font-bold text-xs hover:bg-white hover:scale-105 transition-all shadow-md flex items-center gap-1.5 whitespace-nowrap self-stretch md:self-auto justify-center"
+            className="px-5 py-2.5 xl:px-8 xl:py-4 rounded-xl bg-gummy hover:bg-white text-wine font-bold text-xs xl:text-sm 2xl:text-base hover:scale-105 transition-all shadow-md flex items-center gap-1.5 whitespace-nowrap self-stretch md:self-auto justify-center cursor-pointer"
           >
-            Связаться с ними <ExternalLink size={12} />
+            Связаться с ними <ExternalLink size={14} />
           </a>
         </div>
 
         {/* Quick nav helper to Admin Panel */}
         <div className="flex justify-center mt-4">
-          <Link to="/admin-panel" className="text-xs text-gummy/50 hover:text-gummy hover:underline flex items-center gap-1.5 font-mono">
-            <Shield size={12} /> Вход для администрации
+          <Link to="/admin-panel" className="text-xs xl:text-sm text-gummy/50 hover:text-gummy hover:underline flex items-center gap-1.5 font-mono">
+            <Shield size={14} /> Вход для администрации
           </Link>
         </div>
 
@@ -516,58 +555,58 @@ const PricePage: React.FC<PricePageProps> = ({ prices: initialPrices }) => {
       <AnimatedCloud className="absolute top-8 right-8 hidden md:block" size={140} delay={1} />
       <AnimatedCloud className="absolute bottom-8 left-8 hidden md:block" size={120} delay={3} />
 
-      <div className="max-w-4xl w-full min-h-[500px] flex flex-col justify-between gap-8 relative">
+      <div className="max-w-4xl xl:max-w-6xl 2xl:max-w-7xl w-full min-h-[500px] flex flex-col justify-between gap-8 xl:gap-14 relative transition-all">
         
         {/* Price list top-left */}
-        <div className="bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 md:p-8 shadow-xl max-w-2xl self-start">
-          <h2 className="text-2xl md:text-3xl font-display font-bold text-white mb-2">Прайс-лист услуг</h2>
-          <p className="text-xs text-gummy/60 mb-6 font-mono">Наши услуги :3</p>
-
-          <div className="flex flex-col gap-4">
-            {prices.length === 0 ? (
-              // Fallback default prices if server database empty
-              <>
-                <div className="border-b border-gummy/20 pb-3 flex justify-between items-start gap-4">
-                  <div>
-                    <h4 className="text-base font-bold text-gummy">А</h4>
-                    <p className="text-xs text-gummy-light mt-0.5">А.</p>
-                  </div>
-                  <span className="text-lg font-bold text-white whitespace-nowrap bg-wine-dark/40 border border-gummy/20 px-3 py-1 rounded-xl">450 ₽</span>
-                </div>
-                <div className="border-b border-gummy/20 pb-3 flex justify-between items-start gap-4">
-                  <div>
-                    <h4 className="text-base font-bold text-gummy">А</h4>
-                    <p className="text-xs text-gummy-light mt-0.5">А.</p>
-                  </div>
-                  <span className="text-lg font-bold text-white whitespace-nowrap bg-wine-dark/40 border border-gummy/20 px-3 py-1 rounded-xl">700 ₽</span>
-                </div>
-              </>
-            ) : (
-              prices.map((item) => (
-                <div key={item.id} className="border-b border-gummy/20 pb-4 flex justify-between items-start gap-4">
-                  <div>
-                    <h4 className="text-base font-bold text-white">{item.title}</h4>
-                    <p className="text-xs text-gummy-light mt-1">{item.description}</p>
-                  </div>
-                  <span className="text-base font-bold text-gummy whitespace-nowrap bg-wine-dark/40 border border-gummy/20 px-3 py-1 rounded-xl">{item.price}</span>
-                </div>
-              ))
-            )}
-          </div>
-          
-          <button
-            id="price-back-btn"
-            onClick={() => navigate('/info')}
-            className="mt-8 bg-gummy text-wine font-bold text-xs px-5 py-2.5 rounded-xl hover:bg-white transition-all shadow-md cursor-pointer"
-          >
-            Вернуться назад
-          </button>
-        </div>
-
-        {/* Mascot bottom-right */}
-        <div className="self-end mr-4 md:mr-16">
-          <MascotPlaceholder pose="pointing-left" size={180} />
-        </div>
+        <div className="bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 sm:p-8 md:p-10 xl:p-16 shadow-xl max-w-2xl xl:max-w-4xl w-full self-start transition-all">
+          <h2 className="text-2xl md:text-3xl xl:text-5xl font-display font-bold text-white mb-2 xl:mb-4">Прайс-лист услуг</h2>
+          <p className="text-xs xl:text-sm text-gummy/60 mb-6 xl:mb-10 font-mono">Наши услуги :3</p>
+ 
+           <div className="flex flex-col gap-4">
+             {prices.length === 0 ? (
+               // Fallback default prices if server database empty
+               <>
+                 <div className="border-b border-gummy/20 pb-3 xl:pb-5 flex justify-between items-start gap-4">
+                   <div>
+                     <h4 className="text-base xl:text-2xl font-bold text-gummy">А</h4>
+                     <p className="text-xs xl:text-base text-gummy-light mt-0.5">А.</p>
+                   </div>
+                   <span className="text-lg xl:text-2xl font-bold text-white whitespace-nowrap bg-wine-dark/40 border border-gummy/20 px-3 py-1 rounded-xl">450 ₽</span>
+                 </div>
+                 <div className="border-b border-gummy/20 pb-3 xl:pb-5 flex justify-between items-start gap-4">
+                   <div>
+                     <h4 className="text-base xl:text-2xl font-bold text-gummy">А</h4>
+                     <p className="text-xs xl:text-base text-gummy-light mt-0.5">А.</p>
+                   </div>
+                   <span className="text-lg xl:text-2xl font-bold text-white whitespace-nowrap bg-wine-dark/40 border border-gummy/20 px-3 py-1 rounded-xl">700 ₽</span>
+                 </div>
+               </>
+             ) : (
+               prices.map((item) => (
+                 <div key={item.id} className="border-b border-gummy/20 pb-4 xl:pb-6 flex justify-between items-start gap-4">
+                   <div>
+                     <h4 className="text-base xl:text-2xl font-bold text-white">{item.title}</h4>
+                     <p className="text-xs xl:text-base text-gummy-light mt-1">{item.description}</p>
+                   </div>
+                   <span className="text-base xl:text-2xl font-bold text-gummy whitespace-nowrap bg-wine-dark/40 border border-gummy/20 px-3 py-1 rounded-xl">{item.price}</span>
+                 </div>
+               ))
+             )}
+           </div>
+           
+           <button
+             id="price-back-btn"
+             onClick={() => navigate('/info')}
+             className="mt-8 bg-gummy text-wine font-bold text-xs xl:text-base px-5 py-2.5 xl:px-8 xl:py-4 rounded-xl hover:bg-white transition-all shadow-md cursor-pointer"
+           >
+             Вернуться назад
+           </button>
+         </div>
+ 
+         {/* Mascot bottom-right */}
+         <div className="self-end mr-4 md:mr-16 xl:scale-150 transition-transform origin-right">
+           <MascotPlaceholder pose="pointing-left" size={180} />
+         </div>
 
       </div>
     </PageTransition>
@@ -578,100 +617,121 @@ const PricePage: React.FC<PricePageProps> = ({ prices: initialPrices }) => {
 const SocialsPage: React.FC = () => {
   const navigate = useNavigate();
 
-  // Top-left and bottom-right clouds
   return (
     <PageTransition>
       <AnimatedCloud className="absolute top-8 left-8 hidden md:block" size={130} delay={0.5} />
       <AnimatedCloud className="absolute bottom-8 right-8 hidden md:block" size={130} delay={2.5} />
 
-      <div className="max-w-4xl w-full h-[550px] relative flex flex-col justify-between p-6">
+      <div className="max-w-4xl xl:max-w-6xl 2xl:max-w-7xl w-full flex flex-col gap-6 md:gap-10 p-4 sm:p-6 transition-all">
         
-        {/* CORNER SOCIALS */}
-        
-        {/* Top-Left: VK */}
-        <div className="absolute top-4 left-4 bg-wine-dark/60 border-2 border-gummy/30 rounded-2xl p-4 w-44 shadow-lg text-center">
-          <h3 className="font-bold text-white text-base mb-2">ВКонтакте</h3>
-          <a
-            id="social-vk-btn"
-            href="https://vk.com"
-            target="_blank"
-            rel="noreferrer"
-            className="w-full inline-block bg-gummy text-wine text-xs font-bold py-2 rounded-xl hover:bg-white transition-all"
-          >
-            Перейти
-          </a>
+        {/* Title */}
+        <div className="text-center">
+          <h2 className="text-2xl md:text-3xl xl:text-5xl font-display font-bold text-white mb-2">Наши соцсети</h2>
+          <p className="text-xs xl:text-sm text-gummy/60 font-mono">Оставайтесь на связи с нами во всех уголках интернета! ✨</p>
         </div>
 
-        {/* Top-Right: Instagram */}
-        <div className="absolute top-4 right-4 bg-wine-dark/60 border-2 border-gummy/30 rounded-2xl p-4 w-44 shadow-lg text-center">
-          <h3 className="font-bold text-white text-base mb-2">Instagramm *</h3>
-          <a
-            id="social-inst-btn"
-            href="https://instagram.com"
-            target="_blank"
-            rel="noreferrer"
-            className="w-full inline-block bg-gummy text-wine text-xs font-bold py-2 rounded-xl hover:bg-white transition-all"
-          >
-            Перейти
-          </a>
-        </div>
-
-        {/* Bottom-Left: TikTok */}
-        <div className="absolute bottom-4 left-4 bg-wine-dark/60 border-2 border-gummy/30 rounded-2xl p-4 w-44 shadow-lg text-center">
-          <h3 className="font-bold text-white text-base mb-2">TikTok</h3>
-          <a
-            id="social-tiktok-btn"
-            href="https://tiktok.com"
-            target="_blank"
-            rel="noreferrer"
-            className="w-full inline-block bg-gummy text-wine text-xs font-bold py-2 rounded-xl hover:bg-white transition-all"
-          >
-            Перейти
-          </a>
-        </div>
-
-        {/* Bottom-Right: TGK (Telegram Channel) */}
-        <div className="absolute bottom-4 right-4 bg-wine-dark/60 border-2 border-gummy/30 rounded-2xl p-4 w-44 shadow-lg text-center">
-          <h3 className="font-bold text-white text-base mb-2">Телеграм</h3>
-          <a
-            id="social-tgk-btn"
-            href="https://t.me"
-            target="_blank"
-            rel="noreferrer"
-            className="w-full inline-block bg-gummy text-wine text-xs font-bold py-2 rounded-xl hover:bg-white transition-all"
-          >
-            Перейти
-          </a>
-        </div>
-
-        {/* CENTER BLOCK: НАШ ЧАТ */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-wine-dark/80 border-4 border-gummy rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl z-20">
-          <Sparkles className="mx-auto text-gummy mb-3 animate-pulse" size={28} />
-          <h2 className="font-display font-bold text-white text-xl md:text-2xl mb-2">НАШ ЧАТ</h2>
-          <p className="text-xs text-gummy/70 mb-6 leading-relaxed">
-            Присоединяйтесь к теплому сообществу!
-          </p>
+        {/* Bento Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6 items-stretch">
           
-          <div className="flex flex-col gap-3">
-            <a
-              id="social-chat-btn"
-              href="https://t.me/gummy_wine_chat"
-              target="_blank"
-              rel="noreferrer"
-              className="w-full py-3.5 rounded-xl bg-gummy text-wine font-bold text-sm hover:bg-white transition-all shadow-md flex items-center justify-center gap-1.5"
-            >
-              Перейти в чат <ExternalLink size={14} />
-            </a>
+          {/* Main Chat Card */}
+          <div className="md:col-span-7 bg-wine-dark/60 border-4 border-gummy rounded-3xl p-6 md:p-10 xl:p-14 flex flex-col justify-between shadow-2xl relative overflow-hidden group transition-all">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gummy/5 rounded-full blur-2xl pointer-events-none group-hover:bg-gummy/10 transition-all duration-500" />
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <Sparkles className="text-gummy animate-pulse" size={28} />
+                <span className="text-[10px] xl:text-xs uppercase tracking-widest font-mono text-gummy/60 font-bold">Официальное сообщество</span>
+              </div>
+              <h3 className="font-display font-bold text-white text-2xl xl:text-4xl mb-3">НАШ ЧАТ</h3>
+              <p className="text-xs xl:text-sm text-gummy/80 leading-relaxed max-w-md">
+                Присоединяйтесь к нашему теплому, веселому и дружному сообществу. Здесь вы можете общаться, делиться тейками, находить единомышленников и напрямую задавать вопросы администрации!
+              </p>
+            </div>
             
-            <button
-              id="socials-back-btn"
-              onClick={() => navigate('/info')}
-              className="w-full py-2.5 rounded-xl bg-transparent border border-gummy/30 text-gummy/60 hover:text-gummy text-xs font-semibold transition-all"
-            >
-              Вернуться назад
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3 mt-8">
+              <a
+                id="social-chat-btn"
+                href="https://t.me/gummy_wine_chat"
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1 py-3.5 px-6 rounded-xl bg-gummy text-wine font-bold text-sm xl:text-base hover:bg-white hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer duration-200"
+              >
+                Перейти в чат <ExternalLink size={14} />
+              </a>
+              <button
+                id="socials-back-btn"
+                onClick={() => navigate('/info')}
+                className="py-3 px-6 rounded-xl bg-transparent border border-gummy/30 text-gummy/60 hover:text-gummy text-xs xl:text-sm font-semibold transition-all hover:border-gummy cursor-pointer"
+              >
+                Вернуться назад
+              </button>
+            </div>
           </div>
+
+          {/* Side Grid: The 4 social channels */}
+          <div className="md:col-span-5 grid grid-cols-2 gap-4">
+            {/* VK */}
+            <div className="bg-wine-dark/40 border-2 border-gummy/20 hover:border-gummy/40 rounded-2xl p-4 flex flex-col justify-between shadow-lg text-center transition-all duration-300">
+              <h4 className="font-bold text-white text-sm xl:text-lg mb-4">ВКонтакте</h4>
+              <a
+                id="social-vk-btn"
+                href="https://vk.com"
+                target="_blank"
+                rel="noreferrer"
+                className="w-full inline-block bg-gummy/15 hover:bg-gummy text-gummy hover:text-wine text-xs xl:text-sm font-bold py-2.5 rounded-xl hover:scale-105 active:scale-95 transition-all cursor-pointer duration-200 border border-gummy/20 hover:border-transparent"
+              >
+                Перейти
+              </a>
+            </div>
+
+            {/* Instagram */}
+            <div className="bg-wine-dark/40 border-2 border-gummy/20 hover:border-gummy/40 rounded-2xl p-4 flex flex-col justify-between shadow-lg text-center transition-all duration-300">
+              <h4 className="font-bold text-white text-sm xl:text-lg mb-4">Instagram *</h4>
+              <a
+                id="social-inst-btn"
+                href="https://instagram.com"
+                target="_blank"
+                rel="noreferrer"
+                className="w-full inline-block bg-gummy/15 hover:bg-gummy text-gummy hover:text-wine text-xs xl:text-sm font-bold py-2.5 rounded-xl hover:scale-105 active:scale-95 transition-all cursor-pointer duration-200 border border-gummy/20 hover:border-transparent"
+              >
+                Перейти
+              </a>
+            </div>
+
+            {/* TikTok */}
+            <div className="bg-wine-dark/40 border-2 border-gummy/20 hover:border-gummy/40 rounded-2xl p-4 flex flex-col justify-between shadow-lg text-center transition-all duration-300">
+              <h4 className="font-bold text-white text-sm xl:text-lg mb-4">TikTok</h4>
+              <a
+                id="social-tiktok-btn"
+                href="https://tiktok.com"
+                target="_blank"
+                rel="noreferrer"
+                className="w-full inline-block bg-gummy/15 hover:bg-gummy text-gummy hover:text-wine text-xs xl:text-sm font-bold py-2.5 rounded-xl hover:scale-105 active:scale-95 transition-all cursor-pointer duration-200 border border-gummy/20 hover:border-transparent"
+              >
+                Перейти
+              </a>
+            </div>
+
+            {/* Telegram */}
+            <div className="bg-wine-dark/40 border-2 border-gummy/20 hover:border-gummy/40 rounded-2xl p-4 flex flex-col justify-between shadow-lg text-center transition-all duration-300">
+              <h4 className="font-bold text-white text-sm xl:text-lg mb-4">Телеграм</h4>
+              <a
+                id="social-tgk-btn"
+                href="https://t.me"
+                target="_blank"
+                rel="noreferrer"
+                className="w-full inline-block bg-gummy/15 hover:bg-gummy text-gummy hover:text-wine text-xs xl:text-sm font-bold py-2.5 rounded-xl hover:scale-105 active:scale-95 transition-all cursor-pointer duration-200 border border-gummy/20 hover:border-transparent"
+              >
+                Перейти
+              </a>
+            </div>
+          </div>
+
         </div>
+
+        {/* Small warning disclaimer about Instagram */}
+        <p className="text-[10px] xl:text-xs text-gummy/40 text-center mt-2 leading-relaxed">
+          * Instagram признан экстремистской организацией на территории РФ.
+        </p>
 
       </div>
     </PageTransition>
@@ -710,47 +770,47 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
 
   return (
     <PageTransition>
-      <div className="max-w-5xl w-full flex flex-col gap-6 relative">
+      <div className="max-w-5xl xl:max-w-7xl 2xl:max-w-screen-2xl w-full flex flex-col gap-6 xl:gap-12 relative transition-all">
         <div className="flex justify-between items-center pb-4 border-b-2 border-gummy/20">
           <div>
-            <h2 className="text-2xl md:text-3xl font-display font-bold text-white">Администрация проекта</h2>
-            <p className="text-xs text-gummy/70 mt-1">Ознакомьтесь с нашей творческой командой!</p>
+            <h2 className="text-2xl md:text-3xl xl:text-5xl font-display font-bold text-white">Администрация проекта</h2>
+            <p className="text-xs xl:text-sm text-gummy/70 mt-1">Ознакомьтесь с нашей творческой командой!</p>
           </div>
           <button
             id="admins-back-btn"
             onClick={() => navigate('/info')}
-            className="px-4 py-2 bg-gummy text-wine font-bold rounded-xl text-xs hover:bg-white transition-all shadow"
+            className="px-4 py-2 xl:px-6 xl:py-3.5 bg-gummy text-wine font-bold rounded-xl text-xs xl:text-sm hover:bg-white transition-all shadow cursor-pointer"
           >
             Назад на главную
           </button>
         </div>
 
         {/* Admins Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {admins.length === 0 ? (
             <p className="text-sm text-gummy/50 col-span-full text-center py-12">Команда настраивается...</p>
           ) : (
             admins.map((adm) => (
-              <div key={adm.id} className="bg-wine-dark/40 border-2 border-gummy/30 rounded-2xl p-5 flex flex-col items-center text-center gap-4 shadow-lg hover:border-gummy transition-all relative group">
-                <div className="absolute top-3 right-3 bg-wine-dark/80 px-2.5 py-0.5 rounded-full border border-gummy/20 text-[10px] font-mono text-gummy">
+              <div key={adm.id} className="bg-wine-dark/40 border-2 border-gummy/30 rounded-2xl p-5 xl:p-8 flex flex-col items-center text-center gap-4 shadow-lg hover:border-gummy transition-all relative group">
+                <div className="absolute top-3 right-3 bg-wine-dark/80 px-2.5 py-0.5 rounded-full border border-gummy/20 text-[10px] xl:text-xs font-mono text-gummy">
                   {adm.role}
                 </div>
 
                 <img
                   src={parseProfileUrls(adm.photoUrl)[0] || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'}
                   alt={adm.nickname}
-                  className="w-24 h-24 rounded-full object-cover border-4 border-gummy shadow-md group-hover:scale-105 transition-all mt-2"
+                  className="w-24 h-24 xl:w-32 xl:h-32 rounded-full object-cover border-4 border-gummy shadow-md group-hover:scale-105 transition-all mt-2"
                 />
 
                 <div>
-                  <h3 className="font-display font-bold text-white text-lg">{adm.nickname}</h3>
-                  <p className="text-xs text-gummy/60 mt-0.5">{adm.role}</p>
+                  <h3 className="font-display font-bold text-white text-lg xl:text-2xl">{adm.nickname}</h3>
+                  <p className="text-xs xl:text-base text-gummy/60 mt-0.5">{adm.role}</p>
                 </div>
 
                 <button
                   id={`learn-more-btn-${adm.id}`}
                   onClick={() => handleSelectAdmin(adm)}
-                  className="w-full bg-gummy text-wine text-xs font-bold py-2.5 rounded-xl hover:bg-white hover:scale-[1.02] transition-all"
+                  className="w-full bg-gummy text-wine text-xs xl:text-sm font-bold py-2.5 xl:py-3.5 rounded-xl hover:bg-white hover:scale-[1.02] transition-all cursor-pointer"
                 >
                   Ознакомиться
                 </button>
@@ -760,7 +820,7 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
         </div>
 
         {/* Mascot pointing from bottom-right corner */}
-        <div className="self-end mr-8 mt-4">
+        <div className="self-end mr-8 mt-4 xl:scale-150 transition-transform origin-right">
           <MascotPlaceholder pose="pointing-left" size={140} />
         </div>
 
@@ -772,7 +832,7 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-wine-dark border-4 border-gummy rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl relative overflow-hidden"
+                className="bg-wine-dark border-4 border-gummy rounded-3xl p-6 md:p-10 xl:p-14 max-w-lg xl:max-w-2xl w-full shadow-2xl relative overflow-hidden transition-all"
               >
                 {/* Cloud decor in top right of modal */}
                 <AnimatedCloud className="absolute -top-6 -right-6 opacity-30 pointer-events-none" size={100} />
@@ -787,7 +847,7 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
                           {/* Main Showcase Image */}
                           <div className="relative aspect-video w-full rounded-2xl overflow-hidden border-4 border-gummy bg-wine/20 shadow-inner flex items-center justify-center">
                             <img src={activePhoto} alt={selectedAdmin.nickname} className="w-full h-full object-cover" />
-                            <div className="absolute top-2 left-2 bg-black/70 px-2.5 py-1 rounded-md text-[10px] font-mono text-gummy border border-gummy/20">
+                            <div className="absolute top-2 left-2 bg-black/70 px-2.5 py-1 rounded-md text-[10px] xl:text-xs font-mono text-gummy border border-gummy/20">
                               Фото {selectedAdminPhotoIdx + 1} из {Math.max(1, photos.length)}
                             </div>
                           </div>
@@ -814,8 +874,8 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
 
                     <div className="flex items-center gap-4 border-t border-gummy/20 pt-3">
                       <div className="flex-1">
-                        <h3 className="font-display font-bold text-white text-xl">{selectedAdmin.nickname}</h3>
-                        <span className="text-xs bg-wine/60 border border-gummy/20 px-2.5 py-0.5 rounded-full text-gummy font-semibold inline-block mt-1.5">
+                        <h3 className="font-display font-bold text-white text-xl xl:text-3xl">{selectedAdmin.nickname}</h3>
+                        <span className="text-xs xl:text-sm bg-wine/60 border border-gummy/20 px-2.5 py-0.5 rounded-full text-gummy font-semibold inline-block mt-1.5">
                           {selectedAdmin.role}
                         </span>
                       </div>
@@ -823,16 +883,16 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <span className="text-[10px] text-gummy/60 font-bold uppercase">О себе</span>
-                    <p className="text-sm text-gummy-light bg-wine/30 border border-gummy/10 p-3.5 rounded-xl whitespace-pre-wrap leading-relaxed">
+                    <span className="text-[10px] xl:text-xs text-gummy/60 font-bold uppercase">О себе</span>
+                    <p className="text-sm xl:text-base text-gummy-light bg-wine/30 border border-gummy/10 p-3.5 rounded-xl whitespace-pre-wrap leading-relaxed">
                       {selectedAdmin.aboutMe || 'Информация уточняется...'}
                     </p>
                   </div>
 
                   {selectedAdmin.hobbies && (
                     <div className="flex flex-col gap-1">
-                      <span className="text-[10px] text-gummy/60 font-bold uppercase">Увлечения & Хобби</span>
-                      <p className="text-sm text-white font-medium">{selectedAdmin.hobbies}</p>
+                      <span className="text-[10px] xl:text-xs text-gummy/60 font-bold uppercase">Увлечения & Хобби</span>
+                      <p className="text-sm xl:text-lg text-white font-medium">{selectedAdmin.hobbies}</p>
                     </div>
                   )}
 
@@ -842,7 +902,7 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
                     if (tracks.length === 0) return null;
                     return (
                       <div className="flex flex-col gap-2 border-t border-gummy/10 pt-3">
-                        <span className="text-[10px] text-gummy/60 font-bold uppercase tracking-widest mb-1">Плейлист / Любимые треки ({tracks.length})</span>
+                        <span className="text-[10px] xl:text-xs text-gummy/60 font-bold uppercase tracking-widest mb-1">Плейлист / Любимые треки ({tracks.length})</span>
                         <div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto pr-1">
                           {tracks.map((trackUrl, idx) => (
                             <MusicPlayer
@@ -863,7 +923,7 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
                         setSelectedAdmin(null);
                         navigate('/take', { state: { selectedAdminId: selectedAdmin.id } });
                       }}
-                      className="flex-1 bg-gummy text-wine font-bold text-xs py-3 rounded-xl hover:bg-white transition-all text-center flex items-center justify-center gap-1.5"
+                      className="flex-1 bg-gummy text-wine font-bold text-xs xl:text-base py-3 xl:py-4 rounded-xl hover:bg-white transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <MessageSquare size={14} /> Написать тейк
                     </button>
@@ -871,7 +931,7 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
                     <button
                       id="modal-close-btn"
                       onClick={() => setSelectedAdmin(null)}
-                      className="px-5 bg-transparent border border-gummy/30 hover:border-gummy text-gummy text-xs font-bold rounded-xl transition-all"
+                      className="px-5 bg-transparent border border-gummy/30 hover:border-gummy text-gummy text-xs xl:text-base font-bold rounded-xl transition-all cursor-pointer"
                     >
                       Закрыть
                     </button>
@@ -894,45 +954,45 @@ const RulesPage: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="max-w-3xl w-full flex flex-col gap-6 relative">
+      <div className="max-w-3xl xl:max-w-5xl 2xl:max-w-6xl w-full flex flex-col gap-6 xl:gap-12 relative transition-all">
         {/* Animated small cloud in top-right */}
         <AnimatedCloud className="absolute top-2 right-2 hidden sm:block" size={90} />
 
-        <div className="bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 md:p-8 shadow-xl relative z-10">
-          <h2 className="text-2xl md:text-3xl font-display font-bold text-white mb-6 border-b border-gummy/20 pb-3">
+        <div className="bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 md:p-10 xl:p-16 shadow-xl relative z-10 transition-all">
+          <h2 className="text-2xl md:text-3xl xl:text-5xl font-display font-bold text-white mb-6 xl:mb-10 border-b border-gummy/20 pb-3 xl:pb-5">
             Правила проекта
           </h2>
 
-          <div className="flex flex-col gap-5 text-sm md:text-base leading-relaxed text-gummy-light">
-            <div className="flex gap-3 items-start">
-              <span className="w-6 h-6 rounded-full bg-gummy text-wine font-mono font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+          <div className="flex flex-col gap-5 xl:gap-8 text-sm md:text-base xl:text-xl leading-relaxed text-gummy-light">
+            <div className="flex gap-3 xl:gap-5 items-start">
+              <span className="w-6 h-6 xl:w-10 xl:h-10 rounded-full bg-gummy text-wine font-mono font-bold text-xs xl:text-lg flex items-center justify-center shrink-0 mt-0.5">1</span>
               <div>
-                <strong className="text-white">Минимум нецензурной лексики.</strong>
-                <p className="text-xs text-gummy/70 mt-1">Мы ценим вежливое и комфортное общение. Избегайте чрезмерного мата и ругани.</p>
+                <strong className="text-white xl:text-2xl">Минимум нецензурной лексики.</strong>
+                <p className="text-xs xl:text-lg text-gummy/70 mt-1 xl:mt-2">Мы ценим вежливое и комфортное общение. Избегайте чрезмерного мата и ругани.</p>
               </div>
             </div>
 
-            <div className="flex gap-3 items-start">
-              <span className="w-6 h-6 rounded-full bg-gummy text-wine font-mono font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+            <div className="flex gap-3 xl:gap-5 items-start">
+              <span className="w-6 h-6 xl:w-10 xl:h-10 rounded-full bg-gummy text-wine font-mono font-bold text-xs xl:text-lg flex items-center justify-center shrink-0 mt-0.5">2</span>
               <div>
-                <strong className="text-white">Никакой травли и деанонимизации.</strong>
-                <p className="text-xs text-gummy/70 mt-1">Анонимность авторов тейков защищена на 100%. Публичное оскорбление или попытки раскрытия личных данных строго запрещены.</p>
+                <strong className="text-white xl:text-2xl">Никакой травли и деанонимизации.</strong>
+                <p className="text-xs xl:text-lg text-gummy/70 mt-1 xl:mt-2">Анонимность авторов тейков защищена на 100%. Публичное оскорбление или попытки раскрытия личных данных строго запрещены.</p>
               </div>
             </div>
 
-            <div className="flex gap-3 items-start">
-              <span className="w-6 h-6 rounded-full bg-gummy text-wine font-mono font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
+            <div className="flex gap-3 xl:gap-5 items-start">
+              <span className="w-6 h-6 xl:w-10 xl:h-10 rounded-full bg-gummy text-wine font-mono font-bold text-xs xl:text-lg flex items-center justify-center shrink-0 mt-0.5">3</span>
               <div>
-                <strong className="text-white">Уважение к труду команды.</strong>
-                <p className="text-xs text-gummy/70 mt-1">Наши администраторы обрабатывают ваши тейки добровольно. Относитесь к ним с теплом!</p>
+                <strong className="text-white xl:text-2xl">Уважение к труду команды.</strong>
+                <p className="text-xs xl:text-lg text-gummy/70 mt-1 xl:mt-2">Наши администраторы обрабатывают ваши тейки добровольно. Относитесь к ним с теплом!</p>
               </div>
             </div>
 
-            <div className="flex gap-3 items-start">
-              <span className="w-6 h-6 rounded-full bg-gummy text-wine font-mono font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">4</span>
+            <div className="flex gap-3 xl:gap-5 items-start">
+              <span className="w-6 h-6 xl:w-10 xl:h-10 rounded-full bg-gummy text-wine font-mono font-bold text-xs xl:text-lg flex items-center justify-center shrink-0 mt-0.5">4</span>
               <div>
-                <strong className="text-white">Только честные обсуждения.</strong>
-                <p className="text-xs text-gummy/70 mt-1">Присылайте только достоверные сплетни или личное мнение, не вводите участников в заблуждение.</p>
+                <strong className="text-white xl:text-2xl">Только честные обсуждения.</strong>
+                <p className="text-xs xl:text-lg text-gummy/70 mt-1 xl:mt-2">Присылайте только достоверные сплетни или личное мнение, не вводите участников в заблуждение.</p>
               </div>
             </div>
           </div>
@@ -941,14 +1001,14 @@ const RulesPage: React.FC = () => {
             <button
               id="rules-back-btn"
               onClick={() => navigate('/info')}
-              className="bg-gummy text-wine font-bold text-xs px-5 py-2.5 rounded-xl hover:bg-white transition-all shadow-md cursor-pointer"
+              className="bg-gummy text-wine font-bold text-xs xl:text-base px-5 py-2.5 xl:px-8 xl:py-4 rounded-xl hover:bg-white transition-all shadow-md cursor-pointer"
             >
               Вернуться назад
             </button>
             <button
               id="rules-write-take-btn"
               onClick={() => navigate('/take')}
-              className="bg-transparent border border-gummy hover:bg-gummy hover:text-wine text-gummy font-bold text-xs px-5 py-2.5 rounded-xl transition-all"
+              className="bg-transparent border border-gummy hover:bg-gummy hover:text-wine text-gummy font-bold text-xs xl:text-base px-5 py-2.5 xl:px-8 xl:py-4 rounded-xl transition-all cursor-pointer"
             >
               Перейти к тейкам
             </button>
@@ -956,7 +1016,7 @@ const RulesPage: React.FC = () => {
         </div>
 
         {/* Mascot in bottom-left */}
-        <div className="self-start ml-4 mt-2">
+        <div className="self-start ml-4 mt-2 xl:scale-150 transition-transform origin-left">
           <MascotPlaceholder pose="pointing-right" size={140} />
         </div>
 
@@ -988,6 +1048,7 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
   const [authCode, setAuthCode] = useState<string | null>(null);
   const [botUsername, setBotUsername] = useState<string>('verifsitepodsl_bot');
   const [authLoading, setAuthLoading] = useState(false);
+  const [takeImageFailed, setTakeImageFailed] = useState(false);
 
   // Math Captcha States
   const [captcha, setCaptcha] = useState<{ captchaId: string; svg: string } | null>(null);
@@ -1190,12 +1251,27 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
 
   return (
     <PageTransition>
-      <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 items-center relative">
+      <div className="max-w-5xl xl:max-w-7xl 2xl:max-w-screen-2xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 xl:gap-14 items-center relative transition-all">
         
         {/* LEFT COLUMN: MASCOT (cols 4) */}
-        <div className="md:col-span-4 flex flex-col items-center gap-3">
-          <MascotPlaceholder pose={tgUser ? "thinking" : "neutral"} size={200} />
-          <div className="bg-wine-dark/40 border border-gummy/20 rounded-xl p-3 text-center text-xs max-w-xs text-gummy/80 leading-relaxed">
+        <div className="md:col-span-4 flex flex-col items-center gap-4">
+          {!takeImageFailed ? (
+            <motion.div
+              animate={{ y: [-5, 5, -5] }}
+              transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+              className="w-full max-w-[200px] sm:max-w-[240px] xl:max-w-[320px] 2xl:max-w-[380px]"
+            >
+              <img
+                src="/take.png"
+                alt="Маскот Тейк"
+                className="w-full h-auto object-contain drop-shadow-2xl"
+                onError={() => setTakeImageFailed(true)}
+              />
+            </motion.div>
+          ) : (
+            <MascotPlaceholder pose={tgUser ? "thinking" : "neutral"} size={200} className="xl:scale-130 transition-transform" />
+          )}
+          <div className="bg-wine-dark/40 border border-gummy/20 rounded-xl p-3 text-center text-xs xl:text-sm max-w-xs text-gummy/80 leading-relaxed">
             {tgUser 
               ? "Поделитесь важной сплетней или классной идеей! Ваша анонимность полностью защищена."
               : "Для защиты от спама и для ведения чата с админом, пожалуйста, авторизуйтесь через Telegram!"
@@ -1204,7 +1280,7 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
         </div>
 
         {/* RIGHT COLUMN: MINI-BOARD FOR FORM (cols 8) */}
-        <div className="md:col-span-8 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 md:p-8 shadow-xl">
+        <div className="md:col-span-8 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 sm:p-8 md:p-10 xl:p-14 2xl:p-20 shadow-xl transition-all">
           <div className="border-b border-gummy/20 pb-4 mb-5 flex justify-between items-center">
             <h2 className="text-xl md:text-2xl font-display font-bold text-white">Доска отправки тейков</h2>
             <button
@@ -1505,35 +1581,35 @@ const AnketaPage: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 items-center justify-center">
+      <div className="max-w-5xl xl:max-w-7xl 2xl:max-w-screen-2xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 xl:gap-14 items-center justify-center transition-all">
         
         {/* Left Mascot */}
-        <div className="md:col-span-3 flex justify-center">
+        <div className="md:col-span-3 flex justify-center xl:scale-130 transition-transform">
           <MascotPlaceholder pose="greeting" size={170} />
         </div>
 
         {/* Center Panel */}
-        <div className="md:col-span-6 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-8 text-center shadow-2xl relative">
-          <HelpCircle className="mx-auto text-gummy mb-4" size={32} />
-          <h2 className="font-display font-bold text-white text-xl md:text-2xl mb-4 leading-normal">
+        <div className="md:col-span-6 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-8 xl:p-14 text-center shadow-2xl relative transition-all">
+          <HelpCircle className="mx-auto text-gummy mb-4 xl:scale-150 xl:mb-6" size={32} />
+          <h2 className="font-display font-bold text-white text-xl md:text-2xl xl:text-4xl mb-4 leading-normal">
             Хочешь к нам в команду? Мы хотим тебя видеть!
           </h2>
-          <p className="text-xs text-gummy/70 mb-8 leading-relaxed max-w-sm mx-auto">
-            Наша команда постоянно расширяется. Если вы хотите внести свой вклад, развивать канал, модерировать постыдля — заполните небольшую анкету, и мы обязательно свяжемся с вами!
+          <p className="text-xs xl:text-base text-gummy/70 mb-8 xl:mb-12 leading-relaxed max-w-sm xl:max-w-lg mx-auto">
+            Наша команда постоянно расширяется. Если вы хотите внести свой вклад, развивать канал, модерировать посты — заполните небольшую анкету, и мы обязательно свяжемся с вами!
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
               id="anketa-fill-btn"
               onClick={() => navigate('/survey')}
-              className="px-6 py-3 rounded-xl bg-gummy text-wine font-bold text-xs hover:bg-white transition-all shadow-md"
+              className="px-6 py-3 xl:py-4.5 rounded-xl bg-gummy text-wine font-bold text-xs xl:text-base hover:bg-white transition-all shadow-md cursor-pointer"
             >
               Заполнить анкету
             </button>
             <button
               id="anketa-back-btn"
               onClick={() => navigate('/info')}
-              className="px-6 py-3 rounded-xl bg-transparent border border-gummy/30 hover:border-gummy text-gummy text-xs font-semibold transition-all"
+              className="px-6 py-3 xl:py-4.5 rounded-xl bg-transparent border border-gummy/30 hover:border-gummy text-gummy text-xs xl:text-base font-semibold transition-all cursor-pointer"
             >
               Назад
             </button>
@@ -1541,7 +1617,7 @@ const AnketaPage: React.FC = () => {
         </div>
 
         {/* Right Mascot */}
-        <div className="md:col-span-3 flex justify-center">
+        <div className="md:col-span-3 flex justify-center xl:scale-130 transition-transform">
           <MascotPlaceholder pose="neutral" size={170} />
         </div>
 
@@ -1631,16 +1707,16 @@ const SurveyFormPage: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="max-w-3xl w-full bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 md:p-8 shadow-xl">
+      <div className="max-w-3xl xl:max-w-5xl 2xl:max-w-6xl w-full bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 md:p-10 xl:p-16 shadow-xl transition-all">
         <div className="border-b border-gummy/20 pb-4 mb-6 flex justify-between items-center">
           <div>
-            <h2 className="text-xl md:text-2xl font-display font-bold text-white">Анкета кандидата</h2>
-            <p className="text-xs text-gummy/60 mt-0.5">Помогите нам узнать о вас поближе</p>
+            <h2 className="text-xl md:text-2xl xl:text-4xl font-display font-bold text-white">Анкета кандидата</h2>
+            <p className="text-xs xl:text-base text-gummy/60 mt-0.5">Помогите нам узнать о вас поближе</p>
           </div>
           <button
             id="survey-back-btn"
             onClick={() => navigate('/anketa')}
-            className="text-xs text-gummy/60 hover:text-gummy underline font-mono"
+            className="text-xs xl:text-base text-gummy/60 hover:text-gummy underline font-mono cursor-pointer"
           >
             назад
           </button>
@@ -1648,60 +1724,60 @@ const SurveyFormPage: React.FC = () => {
 
         {success ? (
           <div className="text-center py-10 flex flex-col items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-gummy text-wine flex items-center justify-center shadow-lg">
-              <Check size={32} strokeWidth={3} />
+            <div className="w-16 h-16 xl:w-24 xl:h-24 rounded-full bg-gummy text-wine flex items-center justify-center shadow-lg">
+              <Check className="w-8 h-8 xl:w-12 xl:h-12" strokeWidth={3} />
             </div>
-            <h3 className="font-display font-bold text-xl text-white">Анкета успешно принята!</h3>
-            <p className="text-xs text-gummy/80 max-w-sm leading-relaxed mx-auto">
+            <h3 className="font-display font-bold text-xl xl:text-3xl text-white">Анкета успешно принята!</h3>
+            <p className="text-xs xl:text-lg text-gummy/80 max-w-sm xl:max-w-xl leading-relaxed mx-auto">
               Ваша заявка направлена Главному Владельцу канала. Мы изучим её и напишем вам, если ваша кандидатура подойдёт. Спасибо за интерес!
             </p>
             <button
               id="survey-success-back"
               onClick={() => navigate('/info')}
-              className="mt-6 bg-gummy text-wine font-bold text-xs px-6 py-3 rounded-xl hover:bg-white transition-all shadow-md"
+              className="mt-6 bg-gummy text-wine font-bold text-xs xl:text-base px-6 py-3 xl:px-8 xl:py-4.5 rounded-xl hover:bg-white transition-all shadow-md cursor-pointer"
             >
               Вернуться на главную
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4 xl:gap-6">
             {errorMsg && (
-              <div className="bg-red-950/60 border border-red-500/50 p-3.5 rounded-xl text-xs text-red-300 flex items-center gap-2">
+              <div className="bg-red-950/60 border border-red-500/50 p-3.5 rounded-xl text-xs xl:text-base text-red-300 flex items-center gap-2">
                 <AlertCircle size={15} /> {errorMsg}
               </div>
             )}
 
             {/* Q1 */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-gummy">1. Откуда вы узнали о нашем проекте? *</label>
+              <label className="text-xs xl:text-lg font-semibold text-gummy">1. Откуда вы узнали о нашем проекте? *</label>
               <input
                 id="q-source"
                 type="text"
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
                 placeholder="Из Телеграма, от друзей, реклама в пабликах..."
-                className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white text-xs outline-none focus:border-gummy"
+                className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 xl:py-4 text-white text-xs xl:text-base outline-none focus:border-gummy"
                 required
               />
             </div>
 
             {/* Q2 */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-gummy">2. Из какой вы сферы деятельности? *</label>
+              <label className="text-xs xl:text-lg font-semibold text-gummy">2. Из какой вы сферы деятельности? *</label>
               <input
                 id="q-sphere"
                 type="text"
                 value={sphere}
                 onChange={(e) => setSphere(e.target.value)}
                 placeholder="КМБП, другое км."
-                className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white text-xs outline-none focus:border-gummy"
+                className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 xl:py-4 text-white text-xs xl:text-base outline-none focus:border-gummy"
                 required
               />
             </div>
 
             {/* Q3 */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-gummy">3. Сколько вам лет? *</label>
+              <label className="text-xs xl:text-lg font-semibold text-gummy">3. Сколько вам лет? *</label>
               <input
                 id="q-age"
                 type="number"
@@ -1710,35 +1786,35 @@ const SurveyFormPage: React.FC = () => {
                 value={age}
                 onChange={(e) => setAge(e.target.value)}
                 placeholder="Например: 18"
-                className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white text-xs outline-none focus:border-gummy"
+                className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 xl:py-4 text-white text-xs xl:text-base outline-none focus:border-gummy"
                 required
               />
             </div>
 
             {/* Q4 */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-gummy">4. Чем конкретно вы хотите заниматься в проекте? *</label>
+              <label className="text-xs xl:text-lg font-semibold text-gummy">4. Чем конкретно вы хотите заниматься в проекте? *</label>
               <input
                 id="q-role"
                 type="text"
                 value={roleInterest}
                 onChange={(e) => setRoleInterest(e.target.value)}
                 placeholder="Вести посты, модерировать чат..."
-                className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white text-xs outline-none focus:border-gummy"
+                className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 xl:py-4 text-white text-xs xl:text-base outline-none focus:border-gummy"
                 required
               />
             </div>
 
             {/* Q5 */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-gummy">5. Как именно вы готовы помочь развивать проект? *</label>
+              <label className="text-xs xl:text-lg font-semibold text-gummy">5. Как именно вы готовы помочь развивать проект? *</label>
               <textarea
                 id="q-help"
                 value={helpDescription}
                 onChange={(e) => setHelpDescription(e.target.value)}
                 rows={3}
                 placeholder="Опишите ваши навыки, предыдущий опыт или классные идеи для продвижения..."
-                className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white text-xs outline-none focus:border-gummy resize-none"
+                className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 xl:py-4 text-white text-xs xl:text-base outline-none focus:border-gummy resize-none"
                 required
               />
             </div>
@@ -1747,8 +1823,8 @@ const SurveyFormPage: React.FC = () => {
             {captcha && (
               <div className="bg-wine/40 border-2 border-gummy/10 rounded-xl p-4 flex flex-col sm:flex-row gap-4 items-center justify-between mt-1">
                 <div className="flex flex-col gap-0.5 text-left w-full sm:w-auto">
-                  <span className="text-[10px] font-bold uppercase text-gummy/70">Защита от спама и ботов *</span>
-                  <span className="text-[11px] text-gummy/50">Решите пример для подтверждения:</span>
+                  <span className="text-[10px] xl:text-xs font-bold uppercase text-gummy/70">Защита от спама и ботов *</span>
+                  <span className="text-[11px] xl:text-sm text-gummy/50">Решите пример для подтверждения:</span>
                 </div>
                 <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
                   <div 
@@ -1763,7 +1839,7 @@ const SurveyFormPage: React.FC = () => {
                     value={captchaAnswer}
                     onChange={(e) => setCaptchaAnswer(e.target.value)}
                     placeholder="Ответ"
-                    className="w-20 bg-wine border-2 border-gummy/20 rounded-xl px-3 py-2 text-white text-xs text-center outline-none focus:border-gummy"
+                    className="w-20 xl:w-28 bg-wine border-2 border-gummy/20 rounded-xl px-3 py-2 xl:py-3.5 text-white text-xs xl:text-base text-center outline-none focus:border-gummy"
                   />
                 </div>
               </div>
@@ -1773,7 +1849,7 @@ const SurveyFormPage: React.FC = () => {
               id="survey-submit-btn"
               type="submit"
               disabled={loading}
-              className="mt-4 bg-gummy text-wine font-bold text-xs py-3.5 rounded-xl hover:bg-white transition-all shadow-md"
+              className="mt-4 bg-gummy text-wine font-bold text-xs xl:text-base py-3.5 xl:py-4.5 rounded-xl hover:bg-white transition-all shadow-md cursor-pointer"
             >
               {loading ? 'Отправка анкеты...' : 'Отправить анкету владельцу'}
             </button>
@@ -1810,38 +1886,38 @@ const UnionsPage: React.FC<UnionsPageProps> = ({ unions: initialUnions }) => {
 
   return (
     <PageTransition>
-      <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 items-center justify-center">
+      <div className="max-w-5xl xl:max-w-7xl 2xl:max-w-screen-2xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 xl:gap-14 items-center justify-center transition-all">
         
         {/* Left Mascot */}
-        <div className="md:col-span-3 flex justify-center">
+        <div className="md:col-span-3 flex justify-center xl:scale-130 transition-transform">
           <MascotPlaceholder pose="greeting" size={170} />
         </div>
 
         {/* Center content */}
-        <div className="md:col-span-6 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 md:p-8 shadow-2xl relative flex flex-col gap-6">
+        <div className="md:col-span-6 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 sm:p-8 md:p-10 xl:p-16 shadow-2xl relative flex flex-col gap-6 transition-all">
           <div className="border-b border-gummy/20 pb-3 mb-1 text-center">
-            <h2 className="font-display font-bold text-white text-xl md:text-2xl">Наши союзы</h2>
-            <p className="text-xs text-gummy/50 mt-0.5 font-mono">Wine Mascot Alliance & Partners</p>
+            <h2 className="font-display font-bold text-white text-xl md:text-2xl xl:text-4xl">Наши союзы</h2>
+            <p className="text-xs xl:text-sm text-gummy/50 mt-0.5 font-mono">Wine Mascot Alliance & Partners</p>
           </div>
 
           <div className="flex flex-col gap-4">
             {unions.length === 0 ? (
-              <p className="text-xs text-gummy/50 text-center py-6">Партнёрские союзы настраиваются...</p>
+              <p className="text-xs xl:text-sm text-gummy/50 text-center py-6">Партнёрские союзы настраиваются...</p>
             ) : (
               unions.map((union) => (
                 <div key={union.id} className="bg-wine border border-gummy/20 rounded-2xl p-5 flex flex-col gap-3">
                   <div className="flex justify-between items-center">
-                    <h3 className="font-bold text-white text-base">{union.name}</h3>
+                    <h3 className="font-bold text-white text-base xl:text-xl">{union.name}</h3>
                     <a
                       href={union.link}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-xs text-gummy hover:underline flex items-center gap-1"
+                      className="text-xs xl:text-sm text-gummy hover:underline flex items-center gap-1"
                     >
                       Ресурс <ExternalLink size={12} />
                     </a>
                   </div>
-                  <p className="text-xs text-gummy-light leading-relaxed whitespace-pre-wrap">{union.description}</p>
+                  <p className="text-xs xl:text-base text-gummy-light leading-relaxed whitespace-pre-wrap">{union.description}</p>
                 </div>
               ))
             )}
@@ -1850,14 +1926,14 @@ const UnionsPage: React.FC<UnionsPageProps> = ({ unions: initialUnions }) => {
           <button
             id="unions-back-btn"
             onClick={() => navigate('/info')}
-            className="w-full py-3 bg-gummy text-wine font-bold text-xs rounded-xl hover:bg-white transition-all shadow-md"
+            className="w-full py-3 xl:py-4.5 bg-gummy text-wine font-bold text-xs xl:text-base rounded-xl hover:bg-white transition-all shadow-md cursor-pointer"
           >
             Вернуться на главную
           </button>
         </div>
 
         {/* Right Mascot */}
-        <div className="md:col-span-3 flex justify-center">
+        <div className="md:col-span-3 flex justify-center xl:scale-130 transition-transform">
           <MascotPlaceholder pose="neutral" size={170} />
         </div>
 
