@@ -393,28 +393,28 @@ const MainInfoPage: React.FC<MainInfoPageProps> = ({ admins, unions }) => {
             onClick={() => navigate('/price')}
             className="py-3.5 px-4 rounded-xl bg-gummy/15 hover:bg-gummy border-2 border-gummy/30 hover:border-transparent text-gummy hover:text-wine font-display font-bold text-center hover:scale-105 transition-all shadow-md text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-1.5 duration-200 backdrop-blur-md"
           >
-            Прайс 💎
+            Прайс
           </button>
           <button
             id="nav-socials"
             onClick={() => navigate('/socials')}
             className="py-3.5 px-4 rounded-xl bg-gummy/15 hover:bg-gummy border-2 border-gummy/30 hover:border-transparent text-gummy hover:text-wine font-display font-bold text-center hover:scale-105 transition-all shadow-md text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-1.5 duration-200 backdrop-blur-md"
           >
-            Соцсети 🌐
+            Соцсети
           </button>
           <button
             id="nav-admin"
             onClick={() => navigate('/admin')}
             className="py-3.5 px-4 rounded-xl bg-gummy/15 hover:bg-gummy border-2 border-gummy/30 hover:border-transparent text-gummy hover:text-wine font-display font-bold text-center hover:scale-105 transition-all shadow-md text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-1.5 duration-200 backdrop-blur-md"
           >
-            Администрация 👑
+            Администрация
           </button>
           <button
             id="nav-take"
             onClick={() => navigate('/take')}
             className="py-3.5 px-4 rounded-xl bg-gummy/15 hover:bg-gummy border-2 border-gummy/30 hover:border-transparent text-gummy hover:text-wine font-display font-bold text-center hover:scale-105 transition-all shadow-md text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-1.5 duration-200 backdrop-blur-md animate-pulse"
           >
-            Написать тейк 📝
+            Написать тейк
           </button>
           <a
             id="nav-support"
@@ -430,14 +430,14 @@ const MainInfoPage: React.FC<MainInfoPageProps> = ({ admins, unions }) => {
             onClick={() => navigate('/anketa')}
             className="py-3.5 px-4 rounded-xl bg-gummy/15 hover:bg-gummy border-2 border-gummy/30 hover:border-transparent text-gummy hover:text-wine font-display font-bold text-center hover:scale-105 transition-all shadow-md text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-1.5 duration-200 backdrop-blur-md"
           >
-            Заявка 📄
+            Заявка
           </button>
           <button
             id="nav-unions"
             onClick={() => navigate('/unions')}
             className="py-3.5 px-4 rounded-xl bg-gummy/15 hover:bg-gummy border-2 border-gummy/30 hover:border-transparent text-gummy hover:text-wine font-display font-bold text-center hover:scale-105 transition-all shadow-md text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-1.5 duration-200 backdrop-blur-md"
           >
-            Союзы 🤝
+            Союзы
           </button>
         </div>
 
