@@ -22,6 +22,32 @@ if (!fs.existsSync(uploadsDir)) {
 // Serve uploaded files statically
 app.use('/uploads', express.static(uploadsDir));
 
+// Serve custom mascot and background images directly from root
+const rootImages = [
+  'ВСОЮЗЫ.png',
+  'заявки.png',
+  'списокадминов.png',
+  'техподдержка.png',
+  'mainmenu(info).png',
+  'mainmenu(start).PNG',
+  'куда_нибудь.png',
+  'горизонтально_под_кнопками.png',
+  'take.png'
+];
+app.get('/:imgName', (req, res, next) => {
+  const { imgName } = req.params;
+  try {
+    const decodedName = decodeURIComponent(imgName);
+    const found = rootImages.find(img => img.toLowerCase() === decodedName.toLowerCase());
+    if (found) {
+      return res.sendFile(path.join(process.cwd(), found));
+    }
+  } catch (e) {
+    // Ignore
+  }
+  next();
+});
+
 // Middleware
 app.use(express.json({ limit: '10mb' }));
 

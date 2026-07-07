@@ -532,7 +532,7 @@ const SupportPage: React.FC<SupportPageProps> = ({ tgUser }) => {
               className="w-full max-w-[200px] sm:max-w-[240px] xl:max-w-[320px] 2xl:max-w-[380px] relative z-10"
             >
               <img
-                src="/support.png"
+                src="/техподдержка.png"
                 alt="Маскот Поддержка"
                 className="w-full h-auto object-contain drop-shadow-2xl bg-transparent"
                 onError={() => setSupportImageFailed(true)}
@@ -841,7 +841,21 @@ const MainInfoPage: React.FC<MainInfoPageProps> = ({ admins, unions }) => {
             <span className="text-[10px] xl:text-xs uppercase tracking-widest font-mono text-gummy/60 font-bold block mb-1">Информация</span>
             <h2 className="text-xl md:text-2xl xl:text-4xl 2xl:text-5xl font-display font-bold text-white mb-4">О нас</h2>
             <p className="text-sm md:text-base xl:text-lg 2xl:text-xl text-gummy-light leading-relaxed xl:leading-loose whitespace-pre-line font-sans">
-              Добро пожаловать в Подслушано КМБП — главное анонимное пространство нашего сообщества. Мы создали эту платформу, чтобы каждый мог открыто поделиться своими мыслями, раскрыть секреты, обсудить актуальные новости или предложить интересные идеи. Наша цель — объединять людей, создавать уютную атмосферу для общения, обмениваться сладкими сплетнями и горькой правдой. Каждое отправленное сообщение проходит модерацию для защиты участников, сохраняя при этом абсолютную конфиденциальность авторов.
+              {`
+у Мицуки уже есть для тебя новая история...
+
+Подслушано — это твоя маленькая точка в интернете с вайбом Y2K, где каждый секрет может стать самой обсуждаемой историей.
+
+Здесь собираются сплетни, признания, интриги, случайные совпадения, смешные ситуации и истории, которые хочется читать до самого конца. Иногда они милые. Иногда — драматичные. А иногда настолько неожиданные, что хочется сразу отправить их подруге.
+
+Главная здесь — Мицуки.
+Та самая девушка, которая каким-то образом узнаёт всё раньше остальных. Пока кто-то только собирается рассказать новость, Мицуки уже достала свой розовый телефон-раскладушку, написала лучшей подруге и бежит делиться свежими сплетнями.
+
+Но не переживай...
+Все секреты останутся анонимными.
+
+Мицуки уже ждёт твою историю...
+P.S. Возможно, именно твой секрет станет следующим, о котором будут говорить все...`}
             </p>
             <div className="mt-4 flex flex-wrap gap-2.5">
               <span className="text-xs xl:text-sm bg-wine/60 border border-gummy/30 px-3 py-1 xl:px-4 xl:py-1.5 rounded-full font-semibold">100% Анонимно</span>
@@ -2136,7 +2150,14 @@ const SurveyFormPage: React.FC = () => {
         
         {/* Left Mascot */}
         <div className="md:col-span-4 flex justify-center xl:scale-130 transition-transform">
-          <MascotPlaceholder pose="thinking" size={200} />
+          <img 
+            src="/заявки.png" 
+            alt="Маскот Заявки" 
+            className="max-w-[200px] xl:max-w-[260px] h-auto object-contain drop-shadow-2xl" 
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
         </div>
 
         {/* Form Panel */}
@@ -2304,24 +2325,66 @@ const MascotPage: React.FC = () => {
       <div className="max-w-5xl xl:max-w-7xl 2xl:max-w-screen-2xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 xl:gap-14 items-center justify-center transition-all relative">
         
         {/* Mascot on the left, at the boundary */}
-        <div className="md:col-span-4 flex justify-center md:justify-start xl:scale-130 transition-transform md:-ml-8 lg:-ml-16">
-          <MascotPlaceholder pose="greeting" size={240} className="drop-shadow-2xl" />
+        <div className="md:col-span-4 flex justify-center md:justify-start xl:scale-130 transition-transform md:-ml-12 lg:-ml-20">
+          <img 
+            src="/ВСОЮЗЫ.png" 
+            alt="Мицуки" 
+            className="max-w-[220px] xl:max-w-[280px] h-auto object-contain drop-shadow-2xl" 
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
         </div>
 
         {/* Description Panel on the right */}
         <div className="md:col-span-8 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 sm:p-10 xl:p-16 shadow-2xl relative flex flex-col gap-6 transition-all">
           <div className="border-b border-gummy/20 pb-3 mb-1">
             <span className="text-[10px] xl:text-xs uppercase tracking-widest font-mono text-gummy/60 font-bold block mb-1">Официальный маскот</span>
-            <h2 className="font-display font-bold text-white text-2xl md:text-3xl xl:text-5xl">Мицуки</h2>
+            <h2 className="font-display font-bold text-white text-2xl md:text-3xl xl:text-5xl">Знакомьтесь — Мицуки</h2>
           </div>
 
-          <div className="text-sm md:text-base xl:text-lg 2xl:text-2xl text-gummy-light leading-relaxed xl:leading-loose space-y-4 font-sans">
+          <div className="text-sm md:text-base xl:text-lg 2xl:text-xl text-gummy-light leading-relaxed xl:leading-loose space-y-4 font-sans whitespace-pre-line">
+            <div className="bg-wine/30 border border-gummy/10 rounded-2xl p-4 md:p-6 mb-4 space-y-2">
+              <p className="font-bold text-white">Возраст: <span className="font-normal text-gummy-light">17 лет</span></p>
+              <p className="font-bold text-white">Рост: <span className="font-normal text-gummy-light">170 см</span></p>
+              <p className="font-bold text-white">Любимый стиль: <span className="font-normal text-gummy-light">Y2K (эстетика 2000-х)</span></p>
+            </div>
+
             <p>
-              Мицуки — это официальный маскот и душа нашего портала Подслушано КМБП. Она олицетворяет собой дружелюбие, любопытство и искренность, помогая пользователям чувствовать себя комфортно при отправке своих откровений.
+              Мицуки — настоящая королева гламура нулевых. Розовый цвет, джинсы-клёш, стразы, блестящие аксессуары и маленькие сумочки — её визитная карточка. Она обожает всё, что напоминает о яркой и беззаботной эпохе 2000-х.
             </p>
+
             <p>
-              Мицуки всегда находится на страже ваших секретов, бережно собирая анонимные тейки и идеи. Ее образ сочетает в себе нежность и готовность выслушать каждого, будь то веселая сплетня или серьезное переживание. Она связывает участников сообщества и помогает поддерживать атмосферу тепла и доверия на нашей платформе.
+              Но её главный талант — всегда быть в курсе событий. Мицуки знает все последние новости, замечает детали, которые другие упускают, и умеет собирать самые интересные истории. Она не считает это сплетнями — для неё это настоящее искусство наблюдения.
             </p>
+
+            <p>
+              За милой внешностью скрывается очень внимательная девушка, которая редко упускает что-то важное. Она общительна, любознательна и всегда оказывается в центре самых интересных событий.
+            </p>
+
+            <div className="bg-wine/30 border border-gummy/10 rounded-2xl p-4 md:p-6">
+              <h4 className="font-display font-bold text-white mb-3 text-base xl:text-lg">Интересы:</h4>
+              <ul className="list-disc list-inside space-y-1 text-gummy-light">
+                <li>Собирать интересные истории и слухи</li>
+                <li>Мода и эстетика 2000-х</li>
+                <li>Шопинг и аксессуары</li>
+                <li>Поп-музыка нулевых</li>
+                <li>Ведение дневника и коллажей</li>
+                <li>Общение и новые знакомства</li>
+              </ul>
+            </div>
+
+            <div className="border-l-4 border-gummy pl-4 italic my-4">
+              <p className="font-bold text-white text-base xl:text-lg">Любимая фраза:</p>
+              <p className="text-gummy-light">«Я не сплетничаю — я просто всегда знаю немного больше остальных.»</p>
+            </div>
+
+            <div className="bg-wine-dark/40 border border-gummy/10 rounded-2xl p-4">
+              <p className="font-bold text-white">Факт о Мицуки:</p>
+              <p className="text-gummy-light mt-1">
+                Если в компании произошло что-то интересное, будьте уверены — Мицуки узнает об этом первой. Но расскажет ли она об этом другим? Это уже совсем другая история...
+              </p>
+            </div>
           </div>
 
           <button

@@ -330,8 +330,28 @@ bot.on('message', async (ctx) => {
     if ('photo' in ctx.message) {
       const photos = ctx.message.photo;
       const highestResPhoto = photos[photos.length - 1];
-      const fileLink = await ctx.telegram.getFileLink(highestResPhoto.file_id);
-      mediaUrls.push(fileLink.toString());
+      try {
+        const file = await ctx.telegram.getFile(highestResPhoto.file_id);
+        if (file && file.file_path) {
+          const downloadUrl = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+          const buffer = await downloadFileWithProxy(downloadUrl);
+          const uploadsDir = path.join(process.cwd(), 'uploads');
+          if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+          }
+          const mediaFilename = `tg_${tgId}_${Date.now()}_photo.jpg`;
+          fs.writeFileSync(path.join(uploadsDir, mediaFilename), buffer);
+          const localUrl = `/uploads/${mediaFilename}`;
+          mediaUrls.push(localUrl);
+        } else {
+          const fileLink = await ctx.telegram.getFileLink(highestResPhoto.file_id);
+          mediaUrls.push(fileLink.toString());
+        }
+      } catch (e) {
+        console.error('Failed to download user photo from Telegram:', e);
+        const fileLink = await ctx.telegram.getFileLink(highestResPhoto.file_id);
+        mediaUrls.push(fileLink.toString());
+      }
       textContent = ctx.message.caption || '🖼️ [Фотография]';
     } 
     // Handle plain text message
@@ -340,8 +360,30 @@ bot.on('message', async (ctx) => {
     } 
     // Handle general documents
     else if ('document' in ctx.message) {
-      const fileLink = await ctx.telegram.getFileLink(ctx.message.document.file_id);
-      mediaUrls.push(fileLink.toString());
+      try {
+        const doc = ctx.message.document;
+        const file = await ctx.telegram.getFile(doc.file_id);
+        if (file && file.file_path) {
+          const downloadUrl = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+          const buffer = await downloadFileWithProxy(downloadUrl);
+          const uploadsDir = path.join(process.cwd(), 'uploads');
+          if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+          }
+          const cleanName = (doc.file_name || 'file').replace(/[^a-zA-Z0-9.\-_]/g, '_');
+          const mediaFilename = `tg_${tgId}_${Date.now()}_${cleanName}`;
+          fs.writeFileSync(path.join(uploadsDir, mediaFilename), buffer);
+          const localUrl = `/uploads/${mediaFilename}`;
+          mediaUrls.push(localUrl);
+        } else {
+          const fileLink = await ctx.telegram.getFileLink(doc.file_id);
+          mediaUrls.push(fileLink.toString());
+        }
+      } catch (e) {
+        console.error('Failed to download user document from Telegram:', e);
+        const fileLink = await ctx.telegram.getFileLink(ctx.message.document.file_id);
+        mediaUrls.push(fileLink.toString());
+      }
       textContent = ctx.message.caption || `📎 [Документ: ${ctx.message.document.file_name || 'Файл'}]`;
     } else {
       return ctx.reply('<tg-emoji emoji-id="5447644880824181073">⚠️</tg-emoji> Данный тип вложений не поддерживается. Пожалуйста, прикрепите фото или введите обычный текст.', { parse_mode: 'HTML' });
