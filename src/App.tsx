@@ -11,27 +11,41 @@ import { AdminPanel } from './components/AdminPanel';
 import { 
   Sparkles, ExternalLink, MessageSquare, AlertCircle, 
   ChevronRight, Heart, Send, Check, Shield, HelpCircle, 
-  MapPin, Eye, Play, Plus, BookOpen, Volume2, Globe, Trash2, Lock
+  MapPin, Eye, Play, Plus, BookOpen, Volume2, Globe, Trash2, Lock, ShieldAlert
 } from 'lucide-react';
 
 // Safe profile urls parser supporting JSON arrays, comma-separated, or single urls
 export function parseProfileUrls(urlField: string | null | undefined): string[] {
   if (!urlField) return [];
+  const convertTelegramUrl = (url: string): string => {
+    const trimmed = url.trim();
+    if (trimmed.startsWith('@')) {
+      return `https://t.me/i/userpic/320/${trimmed.substring(1)}.jpg`;
+    }
+    // Match t.me/username or https://t.me/username, ignoring subpaths or other query strings
+    const tmeRegex = /(?:https?:\/\/)?t\.me\/([a-zA-Z0-9_]{5,32})\/?$/i;
+    const match = trimmed.match(tmeRegex);
+    if (match && match[1]) {
+      return `https://t.me/i/userpic/320/${match[1]}.jpg`;
+    }
+    return trimmed;
+  };
+
   try {
     const trimmed = urlField.trim();
     if (trimmed.startsWith('[')) {
       const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed)) {
-        return parsed.filter(Boolean);
+        return parsed.filter(Boolean).map(convertTelegramUrl);
       }
     }
   } catch (e) {
     // legacy or single URL fallback
   }
   if (urlField.includes(',')) {
-    return urlField.split(',').map(s => s.trim()).filter(Boolean);
+    return urlField.split(',').map(s => s.trim()).filter(Boolean).map(convertTelegramUrl);
   }
-  return [urlField.trim()].filter(Boolean);
+  return [urlField.trim()].filter(Boolean).map(convertTelegramUrl);
 }
 
 // Generates or retrieves a unique client ID for online counters
@@ -167,6 +181,7 @@ export default function App() {
           <Route path="/admins" element={<AdminsOverviewPage admins={admins} />} />
           <Route path="/rules" element={<RulesPage />} />
           <Route path="/take" element={<TakeSubmissionPage admins={admins} tgUser={tgUser} setTgUser={setTgUser} />} />
+          <Route path="/support" element={<SupportPage tgUser={tgUser} />} />
           <Route path="/anketa" element={<AnketaPage />} />
           <Route path="/survey" element={<SurveyFormPage />} />
           <Route path="/unions" element={<UnionsPage unions={unions} />} />
@@ -373,6 +388,328 @@ const StartPage: React.FC = () => {
   );
 };
 
+// 12. SUPPORT & IDEAS SUBMISSION PAGE
+interface SupportPageProps {
+  tgUser: { tgId: string; username: string | null; firstName: string | null; avatarUrl?: string | null } | null;
+}
+const SupportPage: React.FC<SupportPageProps> = ({ tgUser }) => {
+  const navigate = useNavigate();
+  const [supportType, setSupportType] = useState<'support_complaint' | 'support_idea'>('support_complaint');
+  const [content, setContent] = useState('');
+  const [mediaList, setMediaList] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [captcha, setCaptcha] = useState<{ captchaId: string; svg: string } | null>(null);
+  const [captchaAnswer, setCaptchaAnswer] = useState('');
+  const [userContact, setUserContact] = useState(tgUser?.username ? `@${tgUser.username}` : '');
+
+  const fetchCaptcha = async () => {
+    try {
+      const res = await fetch('/api/captcha');
+      if (res.ok) {
+        const data = await res.json();
+        setCaptcha(data);
+        setCaptchaAnswer('');
+      }
+    } catch (err) {
+      console.error('Failed to load captcha', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCaptcha();
+  }, []);
+
+  const handleFileUpload = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64Data = reader.result as string;
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename: file.name, base64Data }),
+          });
+          const data = await res.json();
+          if (res.ok) resolve(data.url);
+          else reject(new Error(data.error || 'Upload failed'));
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = () => reject(new Error('File reading error'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    setLoading(true);
+    setErrorMsg('');
+    const urls: string[] = [];
+    try {
+      for (let i = 0; i < e.target.files.length; i++) {
+        const file = e.target.files[i];
+        const url = await handleFileUpload(file);
+        urls.push(url);
+      }
+      setMediaList((prev) => [...prev, ...urls]);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Ошибка при загрузке медиафайлов.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!content.trim()) {
+      setErrorMsg('Пожалуйста, напишите ваше сообщение.');
+      return;
+    }
+    if (!captchaAnswer) {
+      setErrorMsg('Пожалуйста, введите ответ с картинки (капчу).');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg('');
+
+    try {
+      const res = await fetch('/api/takes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: supportType,
+          content: content.trim(),
+          imageUrl: JSON.stringify(mediaList),
+          targetAdminId: 'owner', // Support always goes directly to the owner!
+          userTgUsername: userContact.replace('@', '').trim() || null,
+          userTgName: tgUser?.firstName || null,
+          captchaId: captcha?.captchaId,
+          captchaAnswer: captchaAnswer.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setSuccess(true);
+        setContent('');
+        setMediaList([]);
+      } else {
+        setErrorMsg(data.error || 'Произошла непредвиденная ошибка.');
+        fetchCaptcha();
+      }
+    } catch (err) {
+      setErrorMsg('Ошибка подключения к серверу.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <PageTransition>
+      <div className="max-w-xl xl:max-w-2xl w-full flex flex-col gap-6 relative">
+        <div className="bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 xl:p-10 shadow-2xl relative">
+          
+          <div className="flex items-center gap-3 mb-6 border-b border-gummy/20 pb-4">
+            <ShieldAlert size={28} className="text-gummy animate-pulse" />
+            <div>
+              <h2 className="font-display font-bold text-white text-lg xl:text-2xl">Техническая поддержка & Идеи</h2>
+              <p className="text-[10px] xl:text-xs text-gummy/60 font-mono mt-0.5">Все обращения отправляются напрямую Владельцу</p>
+            </div>
+          </div>
+
+          {success ? (
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="text-center py-8 flex flex-col items-center gap-4"
+            >
+              <div className="w-14 h-14 rounded-full bg-gummy/20 border border-gummy text-gummy flex items-center justify-center text-2xl font-bold">
+                ✓
+              </div>
+              <h3 className="font-display font-bold text-white text-lg xl:text-xl">Сообщение успешно отправлено!</h3>
+              <p className="text-xs text-gummy-light max-w-sm">
+                Большое спасибо за ваше обращение! Владелец проекта рассмотрит его в ближайшее время и свяжется с вами, если потребуется.
+              </p>
+              <button
+                id="support-success-back-btn"
+                onClick={() => navigate('/info')}
+                className="mt-4 bg-gummy text-wine font-bold text-xs xl:text-sm px-6 py-2.5 rounded-xl hover:bg-white hover:scale-105 active:scale-95 transition-all shadow-md cursor-pointer"
+              >
+                Вернуться на главную
+              </button>
+            </motion.div>
+          ) : (
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              
+              {errorMsg && (
+                <div className="bg-red-950/60 border border-red-500/50 p-3 rounded-xl text-xs text-red-300 flex items-center gap-2">
+                  <AlertCircle size={15} /> {errorMsg}
+                </div>
+              )}
+
+              {/* Type selector */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] uppercase font-bold text-gummy/70">Тип обращения</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    id="support-type-complaint"
+                    type="button"
+                    onClick={() => setSupportType('support_complaint')}
+                    className={`py-3.5 px-3 rounded-xl border text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${
+                      supportType === 'support_complaint' 
+                        ? 'bg-gummy text-wine border-gummy' 
+                        : 'bg-wine-dark/40 border-gummy/20 hover:border-gummy/40 text-gummy'
+                    }`}
+                  >
+                    ⚠️ Написать жалобу / вопрос
+                  </button>
+                  <button
+                    id="support-type-idea"
+                    type="button"
+                    onClick={() => setSupportType('support_idea')}
+                    className={`py-3.5 px-3 rounded-xl border text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${
+                      supportType === 'support_idea' 
+                        ? 'bg-gummy text-wine border-gummy' 
+                        : 'bg-wine-dark/40 border-gummy/20 hover:border-gummy/40 text-gummy'
+                    }`}
+                  >
+                    💡 Предложить идею
+                  </button>
+                </div>
+              </div>
+
+              {/* Telegram ID / Username */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] uppercase font-bold text-gummy/70">Ваш Telegram для связи (ник или ссылка)</label>
+                <input
+                  id="support-contact-input"
+                  type="text"
+                  value={userContact}
+                  onChange={(e) => setUserContact(e.target.value)}
+                  placeholder="Например: @username или https://t.me/username"
+                  className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white text-xs outline-none focus:border-gummy"
+                />
+              </div>
+
+              {/* Content text */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] uppercase font-bold text-gummy/70">Содержание сообщения *</label>
+                <textarea
+                  id="support-content-input"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder={
+                    supportType === 'support_complaint'
+                      ? "Опишите вашу проблему, жалобу или вопрос к администрации как можно подробнее..."
+                      : "Расскажите вашу потрясающую идею или предложение по развитию фандома / сайта..."
+                  }
+                  rows={4}
+                  className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-3 text-white text-xs outline-none focus:border-gummy resize-none"
+                  required
+                />
+              </div>
+
+              {/* Upload Screenshots */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] uppercase font-bold text-gummy/70">Скриншоты или медиа файлы (до 5 штук)</label>
+                <div className="flex flex-col gap-3">
+                  <label className="border-2 border-dashed border-gummy/30 hover:border-gummy/70 rounded-xl p-4 flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:bg-wine-dark/20 transition-all text-center">
+                    <span className="text-xs text-gummy font-semibold">📎 Нажмите или перетащите файлы</span>
+                    <span className="text-[9px] text-gummy/50 font-mono">JPG, PNG, GIF до 10MB</span>
+                    <input
+                      id="support-file-picker"
+                      type="file"
+                      multiple
+                      accept="image/*,audio/*"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {mediaList.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {mediaList.map((url, idx) => (
+                        <div key={idx} className="bg-wine-dark/70 border border-gummy/30 rounded-lg p-2 flex items-center justify-between gap-3 text-xs">
+                          <span className="text-gummy-light font-mono truncate max-w-[120px]">Файл #{idx + 1}</span>
+                          <button
+                            id={`support-media-delete-${idx}`}
+                            type="button"
+                            onClick={() => setMediaList((prev) => prev.filter((_, i) => i !== idx))}
+                            className="text-red-400 hover:text-red-300 font-bold"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Math Captcha Verification */}
+              {captcha && (
+                <div className="flex flex-col gap-1 bg-wine-dark/40 border border-gummy/20 rounded-xl p-3">
+                  <label className="text-[10px] uppercase font-bold text-gummy/70 mb-1">Решите математический пример *</label>
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="bg-white/90 border border-gummy/20 rounded-lg px-2 py-1.5 h-10 flex items-center justify-center select-none"
+                      dangerouslySetInnerHTML={{ __html: captcha.svg }}
+                    />
+                    <input
+                      id="support-captcha-input"
+                      type="text"
+                      value={captchaAnswer}
+                      onChange={(e) => setCaptchaAnswer(e.target.value)}
+                      placeholder="Ответ..."
+                      className="w-24 bg-wine border-2 border-gummy/20 rounded-xl px-3 py-2 text-white text-xs outline-none focus:border-gummy text-center font-mono"
+                      required
+                    />
+                    <button
+                      id="support-captcha-refresh-btn"
+                      type="button"
+                      onClick={fetchCaptcha}
+                      className="text-[10px] text-gummy/60 hover:text-gummy underline font-mono"
+                    >
+                      Обновить пример
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Submit Buttons */}
+              <div className="flex gap-3 mt-2">
+                <button
+                  id="support-back-btn"
+                  type="button"
+                  onClick={() => navigate('/info')}
+                  className="flex-1 bg-transparent border-2 border-gummy text-gummy font-bold text-xs py-3.5 rounded-xl hover:bg-gummy hover:text-wine active:scale-95 transition-all text-center cursor-pointer"
+                >
+                  Вернуться на главную
+                </button>
+                <button
+                  id="support-submit-btn"
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 bg-gummy text-wine font-bold text-xs py-3.5 rounded-xl hover:bg-white hover:scale-102 active:scale-95 transition-all shadow-md uppercase tracking-wider disabled:opacity-50 cursor-pointer"
+                >
+                  {loading ? 'Отправка...' : 'Отправить обращение'}
+                </button>
+              </div>
+
+            </form>
+          )}
+
+        </div>
+      </div>
+    </PageTransition>
+  );
+};
+
 // 2. MAIN INFO PAGE
 interface MainInfoPageProps {
   admins: Admin[];
@@ -381,6 +718,7 @@ interface MainInfoPageProps {
 const MainInfoPage: React.FC<MainInfoPageProps> = ({ admins, unions }) => {
   const navigate = useNavigate();
   const [infoImageFailed, setInfoImageFailed] = useState(false);
+  const [aboutImageFailed, setAboutImageFailed] = useState(false);
 
   return (
     <PageTransition>
@@ -416,15 +754,13 @@ const MainInfoPage: React.FC<MainInfoPageProps> = ({ admins, unions }) => {
           >
             Написать тейк
           </button>
-          <a
+          <button
             id="nav-support"
-            href="https://t.me/our_support_channel"
-            target="_blank"
-            rel="noreferrer"
-            className="py-3.5 px-4 rounded-xl bg-gummy/15 hover:bg-gummy border-2 border-gummy/30 hover:border-transparent text-gummy hover:text-wine font-display font-bold text-center hover:scale-105 transition-all shadow-md text-xs sm:text-sm flex items-center justify-center gap-1.5 duration-200 backdrop-blur-md"
+            onClick={() => navigate('/support')}
+            className="py-3.5 px-4 rounded-xl bg-gummy/15 hover:bg-gummy border-2 border-gummy/30 hover:border-transparent text-gummy hover:text-wine font-display font-bold text-center hover:scale-105 transition-all shadow-md text-xs sm:text-sm cursor-pointer flex items-center justify-center gap-1.5 duration-200 backdrop-blur-md"
           >
-            Поддержка <ExternalLink size={13} />
-          </a>
+            Поддержка
+          </button>
           <button
             id="nav-anketa"
             onClick={() => navigate('/anketa')}
@@ -441,18 +777,18 @@ const MainInfoPage: React.FC<MainInfoPageProps> = ({ admins, unions }) => {
           </button>
         </div>
 
-        {/* MASCOT LYING & LOOKING UP AT BUTTONS */}
+        {/* HORIZONTAL PHOTO UNDER CORE BUTTONS */}
         <div className="flex justify-center -my-3">
           {!infoImageFailed ? (
             <motion.div
               animate={{ y: [3, -3, 3], rotate: [0, 0.5, -0.5, 0] }}
               transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
-              className="w-full max-w-[200px] xl:max-w-[300px] 2xl:max-w-[360px]"
+              className="w-full max-w-[400px] xl:max-w-[550px] 2xl:max-w-[650px]"
             >
               <img
-                src="/mainmenu(info).png"
-                alt="Маскот Инфо"
-                className="w-full h-auto object-contain drop-shadow-2xl"
+                src="/горизонтально_под_кнопками.png"
+                alt="Горизонтальная фото под кнопками"
+                className="w-full h-auto object-contain drop-shadow-2xl rounded-2xl border border-gummy/20"
                 onError={() => setInfoImageFailed(true)}
               />
             </motion.div>
@@ -485,9 +821,24 @@ const MainInfoPage: React.FC<MainInfoPageProps> = ({ admins, unions }) => {
             </div>
           </div>
 
-          {/* Standing mascot on the right (span 1 col) */}
+          {/* Standing mascot / relocated photo on the right (span 1 col) */}
           <div className="flex justify-center md:justify-start z-10 xl:scale-130 2xl:scale-150 transition-transform origin-center">
-            <MascotPlaceholder pose="neutral" size={170} />
+            {!aboutImageFailed ? (
+              <motion.div
+                animate={{ y: [-5, 5, -5] }}
+                transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+                className="w-full max-w-[170px] xl:max-w-[240px]"
+              >
+                <img
+                  src="/mainmenu(info).png"
+                  alt="О нас фото"
+                  className="w-full h-auto object-contain drop-shadow-2xl"
+                  onError={() => setAboutImageFailed(true)}
+                />
+              </motion.div>
+            ) : (
+              <MascotPlaceholder pose="neutral" size={170} />
+            )}
           </div>
         </div>
 
@@ -2049,6 +2400,328 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onLogin }) => {
           <p>По умолчанию созданы аккаунты:</p>
           <p className="mt-1">Владелец: <span className="text-gummy/60 font-bold">owner</span> / <span className="text-gummy/60 font-bold">owner123</span></p>
           <p>Админ: <span className="text-gummy/60 font-bold">kibo</span> / <span className="text-gummy/60 font-bold">kibo123</span></p>
+        </div>
+      </div>
+    </PageTransition>
+  );
+};
+
+// 12. SUPPORT & IDEAS SUBMISSION PAGE
+interface SupportPageProps {
+  tgUser: { tgId: string; username: string | null; firstName: string | null; avatarUrl?: string | null } | null;
+}
+const SupportPage: React.FC<SupportPageProps> = ({ tgUser }) => {
+  const navigate = useNavigate();
+  const [supportType, setSupportType] = useState<'support_complaint' | 'support_idea'>('support_complaint');
+  const [content, setContent] = useState('');
+  const [mediaList, setMediaList] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [captcha, setCaptcha] = useState<{ captchaId: string; svg: string } | null>(null);
+  const [captchaAnswer, setCaptchaAnswer] = useState('');
+  const [userContact, setUserContact] = useState(tgUser?.username ? `@${tgUser.username}` : '');
+
+  const fetchCaptcha = async () => {
+    try {
+      const res = await fetch('/api/captcha');
+      if (res.ok) {
+        const data = await res.json();
+        setCaptcha(data);
+        setCaptchaAnswer('');
+      }
+    } catch (err) {
+      console.error('Failed to load captcha', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCaptcha();
+  }, []);
+
+  const handleFileUpload = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64Data = reader.result as string;
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename: file.name, base64Data }),
+          });
+          const data = await res.json();
+          if (res.ok) resolve(data.url);
+          else reject(new Error(data.error || 'Upload failed'));
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = () => reject(new Error('File reading error'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    setLoading(true);
+    setErrorMsg('');
+    const urls: string[] = [];
+    try {
+      for (let i = 0; i < e.target.files.length; i++) {
+        const file = e.target.files[i];
+        const url = await handleFileUpload(file);
+        urls.push(url);
+      }
+      setMediaList((prev) => [...prev, ...urls]);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Ошибка при загрузке медиафайлов.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!content.trim()) {
+      setErrorMsg('Пожалуйста, напишите ваше сообщение.');
+      return;
+    }
+    if (!captchaAnswer) {
+      setErrorMsg('Пожалуйста, введите ответ с картинки (капчу).');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg('');
+
+    try {
+      const res = await fetch('/api/takes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: supportType,
+          content: content.trim(),
+          imageUrl: JSON.stringify(mediaList),
+          targetAdminId: 'owner', // Support always goes directly to the owner!
+          userTgUsername: userContact.replace('@', '').trim() || null,
+          userTgName: tgUser?.firstName || null,
+          captchaId: captcha?.captchaId,
+          captchaAnswer: captchaAnswer.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setSuccess(true);
+        setContent('');
+        setMediaList([]);
+      } else {
+        setErrorMsg(data.error || 'Произошла непредвиденная ошибка.');
+        fetchCaptcha();
+      }
+    } catch (err) {
+      setErrorMsg('Ошибка подключения к серверу.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <PageTransition>
+      <div className="max-w-xl xl:max-w-2xl w-full flex flex-col gap-6 relative">
+        <div className="bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 xl:p-10 shadow-2xl relative">
+          
+          <div className="flex items-center gap-3 mb-6 border-b border-gummy/20 pb-4">
+            <ShieldAlert size={28} className="text-gummy animate-pulse" />
+            <div>
+              <h2 className="font-display font-bold text-white text-lg xl:text-2xl">Техническая поддержка & Идеи</h2>
+              <p className="text-[10px] xl:text-xs text-gummy/60 font-mono mt-0.5">Все обращения отправляются напрямую Владельцу</p>
+            </div>
+          </div>
+
+          {success ? (
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="text-center py-8 flex flex-col items-center gap-4"
+            >
+              <div className="w-14 h-14 rounded-full bg-gummy/20 border border-gummy text-gummy flex items-center justify-center text-2xl font-bold">
+                ✓
+              </div>
+              <h3 className="font-display font-bold text-white text-lg xl:text-xl">Сообщение успешно отправлено!</h3>
+              <p className="text-xs text-gummy-light max-w-sm">
+                Большое спасибо за ваше обращение! Владелец проекта рассмотрит его в ближайшее время и свяжется с вами, если потребуется.
+              </p>
+              <button
+                id="support-success-back-btn"
+                onClick={() => navigate('/info')}
+                className="mt-4 bg-gummy text-wine font-bold text-xs xl:text-sm px-6 py-2.5 rounded-xl hover:bg-white hover:scale-105 active:scale-95 transition-all shadow-md cursor-pointer"
+              >
+                Вернуться на главную
+              </button>
+            </motion.div>
+          ) : (
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              
+              {errorMsg && (
+                <div className="bg-red-950/60 border border-red-500/50 p-3 rounded-xl text-xs text-red-300 flex items-center gap-2">
+                  <AlertCircle size={15} /> {errorMsg}
+                </div>
+              )}
+
+              {/* Type selector */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] uppercase font-bold text-gummy/70">Тип обращения</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    id="support-type-complaint"
+                    type="button"
+                    onClick={() => setSupportType('support_complaint')}
+                    className={`py-3.5 px-3 rounded-xl border text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${
+                      supportType === 'support_complaint' 
+                        ? 'bg-gummy text-wine border-gummy' 
+                        : 'bg-wine-dark/40 border-gummy/20 hover:border-gummy/40 text-gummy'
+                    }`}
+                  >
+                    ⚠️ Написать жалобу / вопрос
+                  </button>
+                  <button
+                    id="support-type-idea"
+                    type="button"
+                    onClick={() => setSupportType('support_idea')}
+                    className={`py-3.5 px-3 rounded-xl border text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${
+                      supportType === 'support_idea' 
+                        ? 'bg-gummy text-wine border-gummy' 
+                        : 'bg-wine-dark/40 border-gummy/20 hover:border-gummy/40 text-gummy'
+                    }`}
+                  >
+                    💡 Предложить идею
+                  </button>
+                </div>
+              </div>
+
+              {/* Telegram ID / Username */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] uppercase font-bold text-gummy/70">Ваш Telegram для связи (ник или ссылка)</label>
+                <input
+                  id="support-contact-input"
+                  type="text"
+                  value={userContact}
+                  onChange={(e) => setUserContact(e.target.value)}
+                  placeholder="Например: @username или https://t.me/username"
+                  className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white text-xs outline-none focus:border-gummy"
+                />
+              </div>
+
+              {/* Content text */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] uppercase font-bold text-gummy/70">Содержание сообщения *</label>
+                <textarea
+                  id="support-content-input"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder={
+                    supportType === 'support_complaint'
+                      ? "Опишите вашу проблему, жалобу или вопрос к администрации как можно подробнее..."
+                      : "Расскажите вашу потрясающую идею или предложение по развитию фандома / сайта..."
+                  }
+                  rows={4}
+                  className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-3 text-white text-xs outline-none focus:border-gummy resize-none"
+                  required
+                />
+              </div>
+
+              {/* Upload Screenshots */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] uppercase font-bold text-gummy/70">Скриншоты или медиа файлы (до 5 штук)</label>
+                <div className="flex flex-col gap-3">
+                  <label className="border-2 border-dashed border-gummy/30 hover:border-gummy/70 rounded-xl p-4 flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:bg-wine-dark/20 transition-all text-center">
+                    <span className="text-xs text-gummy font-semibold">📎 Нажмите или перетащите файлы</span>
+                    <span className="text-[9px] text-gummy/50 font-mono">JPG, PNG, GIF до 10MB</span>
+                    <input
+                      id="support-file-picker"
+                      type="file"
+                      multiple
+                      accept="image/*,audio/*"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {mediaList.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {mediaList.map((url, idx) => (
+                        <div key={idx} className="bg-wine-dark/70 border border-gummy/30 rounded-lg p-2 flex items-center justify-between gap-3 text-xs">
+                          <span className="text-gummy-light font-mono truncate max-w-[120px]">Файл #{idx + 1}</span>
+                          <button
+                            id={`support-media-delete-${idx}`}
+                            type="button"
+                            onClick={() => setMediaList((prev) => prev.filter((_, i) => i !== idx))}
+                            className="text-red-400 hover:text-red-300 font-bold"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Math Captcha Verification */}
+              {captcha && (
+                <div className="flex flex-col gap-1 bg-wine-dark/40 border border-gummy/20 rounded-xl p-3">
+                  <label className="text-[10px] uppercase font-bold text-gummy/70 mb-1">Решите математический пример *</label>
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="bg-white/90 border border-gummy/20 rounded-lg px-2 py-1.5 h-10 flex items-center justify-center select-none"
+                      dangerouslySetInnerHTML={{ __html: captcha.svg }}
+                    />
+                    <input
+                      id="support-captcha-input"
+                      type="text"
+                      value={captchaAnswer}
+                      onChange={(e) => setCaptchaAnswer(e.target.value)}
+                      placeholder="Ответ..."
+                      className="w-24 bg-wine border-2 border-gummy/20 rounded-xl px-3 py-2 text-white text-xs outline-none focus:border-gummy text-center font-mono"
+                      required
+                    />
+                    <button
+                      id="support-captcha-refresh-btn"
+                      type="button"
+                      onClick={fetchCaptcha}
+                      className="text-[10px] text-gummy/60 hover:text-gummy underline font-mono"
+                    >
+                      Обновить пример
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Submit Buttons */}
+              <div className="flex gap-3 mt-2">
+                <button
+                  id="support-back-btn"
+                  type="button"
+                  onClick={() => navigate('/info')}
+                  className="flex-1 bg-transparent border-2 border-gummy text-gummy font-bold text-xs py-3.5 rounded-xl hover:bg-gummy hover:text-wine active:scale-95 transition-all text-center cursor-pointer"
+                >
+                  Вернуться на главную
+                </button>
+                <button
+                  id="support-submit-btn"
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 bg-gummy text-wine font-bold text-xs py-3.5 rounded-xl hover:bg-white hover:scale-102 active:scale-95 transition-all shadow-md uppercase tracking-wider disabled:opacity-50 cursor-pointer"
+                >
+                  {loading ? 'Отправка...' : 'Отправить обращение'}
+                </button>
+              </div>
+
+            </form>
+          )}
+
         </div>
       </div>
     </PageTransition>

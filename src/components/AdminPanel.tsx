@@ -54,21 +54,34 @@ interface AdminPanelProps {
 
 export function parseProfileUrls(urlField: string | null | undefined): string[] {
   if (!urlField) return [];
+  const convertTelegramUrl = (url: string): string => {
+    const trimmed = url.trim();
+    if (trimmed.startsWith('@')) {
+      return `https://t.me/i/userpic/320/${trimmed.substring(1)}.jpg`;
+    }
+    const tmeRegex = /(?:https?:\/\/)?t\.me\/([a-zA-Z0-9_]{5,32})\/?$/i;
+    const match = trimmed.match(tmeRegex);
+    if (match && match[1]) {
+      return `https://t.me/i/userpic/320/${match[1]}.jpg`;
+    }
+    return trimmed;
+  };
+
   try {
     const trimmed = urlField.trim();
     if (trimmed.startsWith('[')) {
       const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed)) {
-        return parsed.filter(Boolean);
+        return parsed.filter(Boolean).map(convertTelegramUrl);
       }
     }
   } catch (e) {
     // legacy or single URL fallback
   }
   if (urlField.includes(',')) {
-    return urlField.split(',').map(s => s.trim()).filter(Boolean);
+    return urlField.split(',').map(s => s.trim()).filter(Boolean).map(convertTelegramUrl);
   }
-  return [urlField.trim()].filter(Boolean);
+  return [urlField.trim()].filter(Boolean).map(convertTelegramUrl);
 }
 
 export function parseMediaUrls(imageUrl: string | null | undefined): string[] {
@@ -93,7 +106,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   activeUsersCount,
   onRefreshAdmins,
 }) => {
-  const [activeTab, setActiveTab] = useState<'profile' | 'general_takes' | 'personal_takes' | 'surveys' | 'manage_admins' | 'manage_prices'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'general_takes' | 'personal_takes' | 'surveys' | 'manage_admins' | 'manage_prices' | 'support'>('profile');
   
   // Data States
   const [admins, setAdmins] = useState<Admin[]>([]);
@@ -586,6 +599,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   }`}
                 >
                   <Settings size={18} /> Настройка цен (Прайс)
+                </button>
+
+                <button
+                  id="tab-support"
+                  onClick={() => setActiveTab('support')}
+                  className={`w-full text-left px-4 py-3 rounded-lg flex items-center justify-between gap-3 text-sm font-semibold transition-all ${
+                    activeTab === 'support' ? 'bg-gummy text-wine shadow-lg' : 'hover:bg-wine-dark/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <ShieldAlert size={18} /> Тех. поддержка & Идеи
+                  </div>
+                  <span className="bg-wine-dark/50 text-gummy text-xs px-2 py-0.5 rounded-full font-mono border border-gummy/20">
+                    {takes.filter(t => t.type === 'support_idea' || t.type === 'support_complaint').length}
+                  </span>
                 </button>
               </>
             )}
@@ -1362,6 +1390,146 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       ))
                     )}
                   </div>
+                </div>
+
+              </div>
+            )}
+
+            {/* SUPPORT / TECH TICKETS TAB */}
+            {activeTab === 'support' && isOwner && (
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                
+                {/* Support Chat select panel */}
+                <div className="md:col-span-5 bg-wine-dark/20 border border-gummy/20 rounded-xl p-4 flex flex-col gap-3">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-widest border-b border-gummy/20 pb-2 mb-1 flex items-center gap-2">
+                    <ShieldAlert size={16} className="text-gummy animate-pulse" />
+                    Тех. поддержка и Идеи
+                  </h3>
+
+                  {takes.filter(t => t.type === 'support_idea' || t.type === 'support_complaint').length === 0 ? (
+                    <p className="text-xs text-gummy/50 text-center py-8">Обращений в поддержку пока нет.</p>
+                  ) : (
+                    <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-1">
+                      {takes.filter(t => t.type === 'support_idea' || t.type === 'support_complaint').map((take) => (
+                        <button
+                          key={take.id}
+                          id={`support-chat-item-${take.id}`}
+                          onClick={() => setActiveTakeChatId(take.id)}
+                          className={`w-full text-left p-3 rounded-lg border transition-all flex flex-col gap-1.5 ${
+                            activeTakeChatId === take.id 
+                              ? 'bg-gummy border-gummy text-wine' 
+                              : 'bg-wine border-gummy/20 hover:border-gummy/50 text-gummy'
+                          }`}
+                        >
+                          <div className="flex justify-between items-center w-full">
+                            <span className="text-[9px] uppercase font-mono font-bold bg-wine-dark/40 border border-gummy/20 px-1.5 py-0.5 rounded text-white">
+                              {take.type === 'support_idea' ? 'Идея 💡' : 'Жалоба ⚠️'}
+                            </span>
+                            <span className={`text-[9px] font-mono ${activeTakeChatId === take.id ? 'text-wine/60' : 'text-gummy/50'}`}>
+                              {new Date(take.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <p className="text-xs font-semibold truncate w-full">{take.content}</p>
+                          {take.userTgUsername && (
+                            <span className="text-[9px] font-mono opacity-80">
+                              От: @{take.userTgUsername}
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Support Chat window panel */}
+                <div className="md:col-span-7 bg-wine-dark/20 border border-gummy/20 rounded-xl p-4 flex flex-col h-[450px]">
+                  {activeChatTake && (activeChatTake.type === 'support_idea' || activeChatTake.type === 'support_complaint') ? (
+                    <div className="flex flex-col h-full">
+                      {/* Active Chat Header */}
+                      <div className="border-b border-gummy/20 pb-3 mb-3 flex flex-col gap-1">
+                        <div className="flex justify-between items-start">
+                          <span className="text-xs uppercase font-mono font-bold bg-wine-dark/40 border border-gummy/20 px-2 py-0.5 rounded">
+                            {activeChatTake.type === 'support_idea' ? 'Идея 💡' : 'Жалоба / Тех. поддержка ⚠️'}
+                          </span>
+                          <span className="text-xs text-gummy/60 font-mono">ID: {activeChatTake.id}</span>
+                        </div>
+                        
+                        {activeChatTake.userTgUsername && (
+                          <p className="text-xs text-gummy/80 font-mono mt-1">
+                            Автор: <span className="font-bold text-white">@{activeChatTake.userTgUsername}</span> ({activeChatTake.userTgName || 'Без имени'})
+                          </p>
+                        )}
+
+                        <p className="text-sm font-semibold text-white mt-2 max-h-16 overflow-y-auto pr-1">
+                          "{activeChatTake.content}"
+                        </p>
+                        {(() => {
+                          const mediaUrls = parseMediaUrls(activeChatTake.imageUrl);
+                          if (mediaUrls.length === 0) return null;
+                          return (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {mediaUrls.map((url, idx) => {
+                                const isAudio = url.match(/\.(mp3|wav|ogg|m4a)$/i) || url.includes('audio');
+                                return (
+                                  <a key={idx} href={url} target="_blank" rel="noreferrer" className="text-xs text-gummy hover:underline flex items-center gap-1 bg-wine/30 border border-gummy/20 px-2.5 py-1.5 rounded-lg transition-all hover:border-gummy">
+                                    {isAudio ? '🎵 Музыка' : '🖼️ Фото'} #{idx + 1}
+                                  </a>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
+                      </div>
+
+                      {/* Dialogue Chat Messages */}
+                      <div className="flex-1 overflow-y-auto flex flex-col gap-3 p-2 bg-wine/30 rounded-lg mb-3">
+                        <div className="bg-wine-dark/30 border border-gummy/10 p-3 rounded-lg text-xs italic text-gummy/80">
+                          Это начало диалога техподдержки с пользователем.
+                        </div>
+
+                        {activeChatTake.dialogue && activeChatTake.dialogue.map((msg, index) => (
+                          <div
+                            key={index}
+                            className={`max-w-[85%] rounded-xl p-3 text-xs flex flex-col gap-1 ${
+                              msg.sender === 'admin'
+                                ? 'bg-gummy text-wine self-end rounded-tr-none'
+                                : 'bg-wine-dark/60 border border-gummy/30 text-white self-start rounded-tl-none'
+                            }`}
+                          >
+                            <p className="font-medium whitespace-pre-line leading-relaxed">{msg.text}</p>
+                            <span className="text-[9px] text-right font-mono opacity-60 self-end">
+                              {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Reply Box */}
+                      <form onSubmit={handleSendReply} className="flex gap-2">
+                        <input
+                          id="support-reply-input"
+                          type="text"
+                          value={replyText}
+                          onChange={(e) => setReplyText(e.target.value)}
+                          placeholder="Введите ответ пользователю..."
+                          className="flex-1 bg-wine border-2 border-gummy/20 rounded-xl px-3 py-2 text-white outline-none focus:border-gummy text-xs"
+                          required
+                        />
+                        <button
+                          id="support-send-reply-btn"
+                          type="submit"
+                          className="bg-gummy text-wine hover:bg-white transition-all px-4 rounded-xl font-bold flex items-center justify-center shadow-md"
+                        >
+                          <Send size={14} />
+                        </button>
+                      </form>
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center text-gummy/40 text-center">
+                      <ShieldAlert size={32} className="mb-2 opacity-30" />
+                      <p className="text-xs">Выберите обращение слева для просмотра.</p>
+                    </div>
+                  )}
                 </div>
 
               </div>

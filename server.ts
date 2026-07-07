@@ -353,7 +353,14 @@ app.post('/api/takes', async (req, res) => {
     await Storage.createTake(newTake);
 
     // Telegram Alert Trigger
-    const typeLabel = newTake.type === 'take' ? 'Тейк 💬' : 'Идея 💡';
+    let typeLabel = 'Тейк 💬';
+    if (newTake.type === 'idea') {
+      typeLabel = 'Идея 💡';
+    } else if (newTake.type === 'support_idea') {
+      typeLabel = 'Идея в тех. поддержку 💡';
+    } else if (newTake.type === 'support_complaint') {
+      typeLabel = 'Жалоба в тех. поддержку ⚠️';
+    }
     let targetName = 'Все администраторы';
     let targetTgId = '';
 
