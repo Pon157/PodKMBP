@@ -66,7 +66,7 @@ if (!token) {
             const fileId = photos.photos[0][0].file_id;
             const file = await ctx.telegram.getFile(fileId);
             if (file && file.file_path) {
-              avatarUrl = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+              avatarUrl = `/api/avatar-proxy?file_path=${encodeURIComponent(file.file_path)}`;
             }
           }
         } catch (e) {

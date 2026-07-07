@@ -159,6 +159,33 @@ app.get('/api/auth/tg-login-status', async (req, res) => {
   }
 });
 
+// Telegram Avatar Proxy to avoid exposing Bot Token to client & bypass CORS/CSP
+app.get('/api/avatar-proxy', async (req, res) => {
+  try {
+    const { file_path } = req.query;
+    if (!file_path) {
+      return res.status(400).send('Missing file_path parameter');
+    }
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token) {
+      return res.status(500).send('Telegram bot token not configured');
+    }
+    const url = `https://api.telegram.org/file/bot${token}/${file_path}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      return res.status(response.status).send('Failed to fetch avatar from Telegram');
+    }
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
+    const arrayBuffer = await response.arrayBuffer();
+    res.send(Buffer.from(arrayBuffer));
+  } catch (err: any) {
+    console.error('Error proxying Telegram avatar:', err);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
 // File Upload
 app.post('/api/upload', async (req, res) => {
   try {
@@ -463,7 +490,7 @@ app.post('/api/takes/:id/claim', async (req, res) => {
 app.post('/api/takes/:id/dialogue', async (req, res) => {
   try {
     const { id } = req.params;
-    const { sender, text } = req.body; // sender: 'user' | 'admin'
+    const { sender, text, mediaUrls } = req.body; // sender: 'user' | 'admin'
 
     if (!text || !sender) {
       return res.status(400).json({ error: 'Отправитель и текст сообщения обязательны' });
@@ -478,7 +505,8 @@ app.post('/api/takes/:id/dialogue', async (req, res) => {
     dialogue.push({
       sender,
       text,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      mediaUrls: mediaUrls || undefined
     });
 
     const updated = await Storage.updateTake(id, { dialogue });
@@ -490,9 +518,12 @@ app.post('/api/takes/:id/dialogue', async (req, res) => {
         const allAdmins = await Storage.getAdmins();
         const targetAdmin = allAdmins.find(a => a.id === targetAdminId);
         if (targetAdmin && targetAdmin.tgId) {
-          const textMsg = `<b>💬 НОВОЕ СООБЩЕНИЕ В ТЕЙКЕ!</b>\n\n` +
+          let textMsg = `<b>💬 НОВОЕ СООБЩЕНИЕ В ТЕЙКЕ!</b>\n\n` +
             `От пользователя в чате тейка:\n` +
             `<i>"${text}"</i>`;
+          if (mediaUrls && mediaUrls.length > 0) {
+            textMsg += `\n\n🖼️ <i>Прикреплены изображения: ${mediaUrls.length} шт.</i>`;
+          }
           await notifyTelegram(targetAdmin.tgId, textMsg);
         }
       }
@@ -501,10 +532,20 @@ app.post('/api/takes/:id/dialogue', async (req, res) => {
     // Notify user on Telegram if admin sends a message
     if (sender === 'admin') {
       if (take.userTgId) {
-        const textMsg = `<b>💬 НОВЫЙ ОТВЕТ ОТ АДМИНИСТРАТОРА!</b>\n\n` +
+        let textMsg = `<b>💬 НОВЫЙ ОТВЕТ ОТ АДМИНИСТРАТОРА!</b>\n\n` +
           `В чате вашего тейка:\n` +
-          `<i>"${text}"</i>\n\n` +
-          `🤖 Вы можете ответить на это сообщение прямо здесь в боте!`;
+          `<i>"${text}"</i>\n`;
+        
+        if (mediaUrls && mediaUrls.length > 0) {
+          textMsg += `\n🖼️ <b>Прикрепленные медиа:</b>\n`;
+          const baseHost = `${req.protocol}://${req.get('host')}`;
+          mediaUrls.forEach((m: string, index: number) => {
+            const absoluteUrl = m.startsWith('http') ? m : `${baseHost}${m}`;
+            textMsg += `<a href="${absoluteUrl}">Медиа #${index + 1}</a>\n`;
+          });
+        }
+        
+        textMsg += `\n🤖 Вы можете ответить на это сообщение прямо здесь в боте!`;
         await notifyTelegram(take.userTgId, textMsg);
       }
     }

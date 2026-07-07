@@ -403,6 +403,7 @@ const SupportPage: React.FC<SupportPageProps> = ({ tgUser }) => {
   const [captcha, setCaptcha] = useState<{ captchaId: string; svg: string } | null>(null);
   const [captchaAnswer, setCaptchaAnswer] = useState('');
   const [userContact, setUserContact] = useState(tgUser?.username ? `@${tgUser.username}` : '');
+  const [supportImageFailed, setSupportImageFailed] = useState(false);
 
   const fetchCaptcha = async () => {
     try {
@@ -511,8 +512,37 @@ const SupportPage: React.FC<SupportPageProps> = ({ tgUser }) => {
 
   return (
     <PageTransition>
-      <div className="max-w-xl xl:max-w-2xl w-full flex flex-col gap-6 relative">
-        <div className="bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 xl:p-10 shadow-2xl relative">
+      <div className="max-w-5xl xl:max-w-7xl 2xl:max-w-screen-2xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 xl:gap-14 items-center relative transition-all">
+        
+        {/* LEFT COLUMN: SUPPORT MASCOT (cols 4) */}
+        <div className="md:col-span-4 flex flex-col items-center gap-4 relative">
+          {/* Beautiful glowing purple backdrop */}
+          <div className="absolute w-72 h-72 bg-purple-600/35 rounded-full blur-3xl pointer-events-none -z-10 animate-pulse duration-[3500ms]" />
+          
+          {!supportImageFailed ? (
+            <motion.div
+              animate={{ y: [-5, 5, -5] }}
+              transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+              className="w-full max-w-[200px] sm:max-w-[240px] xl:max-w-[320px] 2xl:max-w-[380px]"
+            >
+              <img
+                src="/support.png"
+                alt="Маскот Поддержка"
+                className="w-full h-auto object-contain drop-shadow-2xl"
+                onError={() => setSupportImageFailed(true)}
+              />
+            </motion.div>
+          ) : (
+            <MascotPlaceholder pose="greeting" size={200} className="xl:scale-130 transition-transform" />
+          )}
+          
+          <div className="bg-wine-dark/40 border border-gummy/20 rounded-xl p-3.5 text-center text-xs xl:text-sm max-w-xs text-gummy/85 leading-relaxed">
+            Есть классная идея по улучшению проекта или возникли технические трудности? Напишите напрямую Владельцу!
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: SUPPORT FORM (cols 8) */}
+        <div className="md:col-span-8 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 sm:p-8 md:p-10 xl:p-14 2xl:p-20 shadow-xl transition-all">
           
           <div className="flex items-center gap-3 mb-6 border-b border-gummy/20 pb-4">
             <ShieldAlert size={28} className="text-gummy animate-pulse" />
@@ -1604,30 +1634,72 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
     <PageTransition>
       <div className="max-w-5xl xl:max-w-7xl 2xl:max-w-screen-2xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 xl:gap-14 items-center relative transition-all">
         
-        {/* LEFT COLUMN: MASCOT (cols 4) */}
-        <div className="md:col-span-4 flex flex-col items-center gap-4">
-          {!takeImageFailed ? (
-            <motion.div
-              animate={{ y: [-5, 5, -5] }}
-              transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
-              className="w-full max-w-[200px] sm:max-w-[240px] xl:max-w-[320px] 2xl:max-w-[380px]"
-            >
-              <img
-                src="/take.png"
-                alt="Маскот Тейк"
-                className="w-full h-auto object-contain drop-shadow-2xl"
-                onError={() => setTakeImageFailed(true)}
-              />
-            </motion.div>
-          ) : (
-            <MascotPlaceholder pose={tgUser ? "thinking" : "neutral"} size={200} className="xl:scale-130 transition-transform" />
-          )}
-          <div className="bg-wine-dark/40 border border-gummy/20 rounded-xl p-3 text-center text-xs xl:text-sm max-w-xs text-gummy/80 leading-relaxed">
-            {tgUser 
-              ? "Поделитесь важной сплетней или классной идеей! Ваша анонимность полностью защищена."
-              : "Для защиты от спама и для ведения чата с админом, пожалуйста, авторизуйтесь через Telegram!"
-            }
+        {/* LEFT COLUMN: RULES & MASCOT UNDER THEM (cols 4) */}
+        <div className="md:col-span-4 flex flex-col gap-6 relative">
+          
+          {/* Rules Panel */}
+          <div className="bg-wine-dark/40 border-2 border-gummy/20 rounded-2xl p-5 xl:p-6 shadow-lg relative overflow-hidden">
+            <h3 className="font-display font-bold text-white text-xs xl:text-sm border-b border-gummy/20 pb-2 mb-3">
+              Здесь ты можешь анонимно:
+            </h3>
+            <ul className="text-[11px] xl:text-xs text-gummy-light flex flex-col gap-2 font-medium">
+              <li className="flex items-start gap-2">
+                <span className="text-gummy mt-0.5">•</span>
+                <span>рассказать о своих симпатиях</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-gummy mt-0.5">•</span>
+                <span>высказать, что раздражает</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-gummy mt-0.5">•</span>
+                <span>обсудить людей, события, эмоции и ботов</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-gummy mt-0.5">•</span>
+                <span className="font-bold text-white uppercase tracking-wider text-[9px] bg-wine/60 px-1.5 py-0.5 rounded">Без имён</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-gummy mt-0.5">•</span>
+                <span className="font-bold text-white uppercase tracking-wider text-[9px] bg-wine/60 px-1.5 py-0.5 rounded">Без раскрытия личности</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-gummy mt-0.5">•</span>
+                <span>Только честные мысли</span>
+              </li>
+            </ul>
+            <p className="text-[11px] xl:text-xs text-gummy font-bold italic mt-4 border-t border-gummy/10 pt-2 text-center">
+              "Не нам судить — но мы обсудим."
+            </p>
           </div>
+
+          {/* Mascot with glowing purple background */}
+          <div className="flex flex-col items-center gap-3 relative">
+            <div className="absolute w-56 h-56 bg-purple-600/35 rounded-full blur-3xl pointer-events-none -z-10 animate-pulse duration-[3000ms]" />
+            {!takeImageFailed ? (
+              <motion.div
+                animate={{ y: [-5, 5, -5] }}
+                transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+                className="w-full max-w-[150px] sm:max-w-[180px] xl:max-w-[240px]"
+              >
+                <img
+                  src="/take.png"
+                  alt="Маскот Тейк"
+                  className="w-full h-auto object-contain drop-shadow-2xl"
+                  onError={() => setTakeImageFailed(true)}
+                />
+              </motion.div>
+            ) : (
+              <MascotPlaceholder pose={tgUser ? "thinking" : "neutral"} size={160} className="xl:scale-120 transition-transform" />
+            )}
+            <div className="bg-wine-dark/20 border border-gummy/10 rounded-xl px-3 py-2 text-center text-[10px] xl:text-xs text-gummy/60 max-w-xs leading-relaxed">
+              {tgUser 
+                ? "Поделитесь вашей сплетней или честным мнением! Ваша анонимность полностью защищена."
+                : "Для защиты от спама, пожалуйста, войдите через Telegram."
+              }
+            </div>
+          </div>
+
         </div>
 
         {/* RIGHT COLUMN: MINI-BOARD FOR FORM (cols 8) */}
@@ -1746,34 +1818,6 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
                 </div>
               )}
 
-              {/* Selector for Take vs Idea */}
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  id="type-take-btn"
-                  type="button"
-                  onClick={() => setType('take')}
-                  className={`py-3 rounded-xl font-bold text-xs border-2 transition-all ${
-                    type === 'take' 
-                      ? 'bg-gummy border-gummy text-wine shadow-lg' 
-                      : 'bg-transparent border-gummy/30 text-gummy hover:border-gummy'
-                  }`}
-                >
-                  Сплетня / Тейк 💬
-                </button>
-                <button
-                  id="type-idea-btn"
-                  type="button"
-                  onClick={() => setType('idea')}
-                  className={`py-3 rounded-xl font-bold text-xs border-2 transition-all ${
-                    type === 'idea' 
-                      ? 'bg-gummy border-gummy text-wine shadow-lg' 
-                      : 'bg-transparent border-gummy/30 text-gummy hover:border-gummy'
-                  }`}
-                >
-                  Предложить идею 💡
-                </button>
-              </div>
-
               {/* Target Admin Select */}
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] font-bold uppercase text-gummy/70">Адресат тейка</label>
@@ -1802,7 +1846,7 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
                   rows={4}
                   maxLength={1000}
                   className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white text-xs outline-none focus:border-gummy resize-none placeholder-gummy/30"
-                  placeholder="Опишите подробно все детали сплетни или вашей идеи..."
+                  placeholder="Опишите подробно все детали вашего тейка..."
                   required
                 />
               </div>

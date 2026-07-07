@@ -147,6 +147,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   // Active chat state
   const [activeTakeChatId, setActiveTakeChatId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
+  const [replyMediaList, setReplyMediaList] = useState<string[]>([]);
+  const [replyMediaLoading, setReplyMediaLoading] = useState(false);
   
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
@@ -423,21 +425,41 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   };
 
+  const handleReplyFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    setReplyMediaLoading(true);
+    const urls: string[] = [];
+    try {
+      for (let i = 0; i < e.target.files.length; i++) {
+        const file = e.target.files[i];
+        const url = await handleFileUpload(file);
+        urls.push(url);
+      }
+      setReplyMediaList((prev) => [...prev, ...urls]);
+    } catch (err: any) {
+      showStatus(err.message || 'Ошибка загрузки файлов', 'error');
+    } finally {
+      setReplyMediaLoading(false);
+    }
+  };
+
   // Send dialogue message
   const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!replyText.trim() || !activeTakeChatId) return;
+    if ((!replyText.trim() && replyMediaList.length === 0) || !activeTakeChatId) return;
     try {
       const res = await fetch(`/api/takes/${activeTakeChatId}/dialogue`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sender: 'admin',
-          text: replyText,
+          text: replyText.trim() || '🖼️ [Изображение]',
+          mediaUrls: replyMediaList,
         }),
       });
       if (res.ok) {
         setReplyText('');
+        setReplyMediaList([]);
         fetchTakes();
       } else {
         showStatus('Ошибка отправки сообщения', 'error');
@@ -1044,7 +1066,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           Это начало вашего диалога с пользователем. Ответы будут отображаться в реальном времени.
                         </div>
 
-                        {activeChatTake.dialogue && activeChatTake.dialogue.map((msg, index) => (
+                        {activeChatTake.dialogue && activeChatTake.dialogue.map((msg: any, index) => (
                           <div
                             key={index}
                             className={`max-w-[85%] rounded-xl p-3 text-xs flex flex-col gap-1 ${
@@ -1054,6 +1076,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                             }`}
                           >
                             <p className="font-medium whitespace-pre-line leading-relaxed">{msg.text}</p>
+                            
+                            {msg.mediaUrls && msg.mediaUrls.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                {msg.mediaUrls.map((url: string, i: number) => (
+                                  <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block">
+                                    <img
+                                      src={url}
+                                      alt="attachment"
+                                      className="max-w-[160px] max-h-[120px] rounded-lg object-cover border border-gummy/25 hover:opacity-90 transition-opacity"
+                                    />
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+
                             <span className="text-[9px] text-right font-mono opacity-60 self-end">
                               {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
@@ -1061,23 +1098,52 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         ))}
                       </div>
 
+                      {/* Upload Previews */}
+                      {replyMediaList.length > 0 && (
+                        <div className="flex flex-wrap gap-2 p-2 bg-wine/25 border border-gummy/10 rounded-xl mb-2">
+                          {replyMediaList.map((url, idx) => (
+                            <div key={idx} className="relative w-12 h-12 bg-wine border-2 border-gummy rounded-lg overflow-hidden group">
+                              <img src={url} alt="Uploaded attachment" className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => setReplyMediaList(prev => prev.filter((_, i) => i !== idx))}
+                                className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
                       {/* Reply Box */}
                       <form onSubmit={handleSendReply} className="flex gap-2">
+                        <label className="flex items-center justify-center bg-wine border-2 border-gummy/20 text-gummy hover:text-white rounded-xl px-3 cursor-pointer hover:border-gummy transition-all select-none">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={handleReplyFileChange}
+                            className="hidden"
+                          />
+                          <span className="text-sm font-bold">📎</span>
+                        </label>
                         <input
                           id="chat-reply-input"
                           type="text"
                           value={replyText}
                           onChange={(e) => setReplyText(e.target.value)}
-                          placeholder="Введите ответ пользователю..."
+                          placeholder={replyMediaLoading ? 'Загрузка файлов...' : 'Введите ответ пользователю...'}
                           className="flex-1 bg-wine border-2 border-gummy/20 rounded-xl px-3 py-2 text-white outline-none focus:border-gummy text-xs"
-                          required
+                          disabled={replyMediaLoading}
                         />
                         <button
                           id="chat-send-reply-btn"
                           type="submit"
-                          className="bg-gummy text-wine hover:bg-white transition-all px-4 rounded-xl font-bold flex items-center justify-center shadow-md"
+                          disabled={replyMediaLoading}
+                          className="bg-gummy text-wine hover:bg-white transition-all px-4 rounded-xl font-bold flex items-center justify-center shadow-md disabled:opacity-50 cursor-pointer"
                         >
-                          <Send size={14} />
+                          {replyMediaLoading ? '...' : <Send size={14} />}
                         </button>
                       </form>
                     </div>
@@ -1487,7 +1553,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           Это начало диалога техподдержки с пользователем.
                         </div>
 
-                        {activeChatTake.dialogue && activeChatTake.dialogue.map((msg, index) => (
+                        {activeChatTake.dialogue && activeChatTake.dialogue.map((msg: any, index) => (
                           <div
                             key={index}
                             className={`max-w-[85%] rounded-xl p-3 text-xs flex flex-col gap-1 ${
@@ -1497,6 +1563,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                             }`}
                           >
                             <p className="font-medium whitespace-pre-line leading-relaxed">{msg.text}</p>
+                            
+                            {msg.mediaUrls && msg.mediaUrls.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                {msg.mediaUrls.map((url: string, i: number) => (
+                                  <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block">
+                                    <img
+                                      src={url}
+                                      alt="attachment"
+                                      className="max-w-[160px] max-h-[120px] rounded-lg object-cover border border-gummy/25 hover:opacity-90 transition-opacity"
+                                    />
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+
                             <span className="text-[9px] text-right font-mono opacity-60 self-end">
                               {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
@@ -1504,23 +1585,52 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         ))}
                       </div>
 
+                      {/* Upload Previews */}
+                      {replyMediaList.length > 0 && (
+                        <div className="flex flex-wrap gap-2 p-2 bg-wine/25 border border-gummy/10 rounded-xl mb-2">
+                          {replyMediaList.map((url, idx) => (
+                            <div key={idx} className="relative w-12 h-12 bg-wine border-2 border-gummy rounded-lg overflow-hidden group">
+                              <img src={url} alt="Uploaded attachment" className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => setReplyMediaList(prev => prev.filter((_, i) => i !== idx))}
+                                className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
                       {/* Reply Box */}
                       <form onSubmit={handleSendReply} className="flex gap-2">
+                        <label className="flex items-center justify-center bg-wine border-2 border-gummy/20 text-gummy hover:text-white rounded-xl px-3 cursor-pointer hover:border-gummy transition-all select-none">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={handleReplyFileChange}
+                            className="hidden"
+                          />
+                          <span className="text-sm font-bold">📎</span>
+                        </label>
                         <input
                           id="support-reply-input"
                           type="text"
                           value={replyText}
                           onChange={(e) => setReplyText(e.target.value)}
-                          placeholder="Введите ответ пользователю..."
+                          placeholder={replyMediaLoading ? 'Загрузка файлов...' : 'Введите ответ пользователю...'}
                           className="flex-1 bg-wine border-2 border-gummy/20 rounded-xl px-3 py-2 text-white outline-none focus:border-gummy text-xs"
-                          required
+                          disabled={replyMediaLoading}
                         />
                         <button
                           id="support-send-reply-btn"
                           type="submit"
-                          className="bg-gummy text-wine hover:bg-white transition-all px-4 rounded-xl font-bold flex items-center justify-center shadow-md"
+                          disabled={replyMediaLoading}
+                          className="bg-gummy text-wine hover:bg-white transition-all px-4 rounded-xl font-bold flex items-center justify-center shadow-md disabled:opacity-50 cursor-pointer"
                         >
-                          <Send size={14} />
+                          {replyMediaLoading ? '...' : <Send size={14} />}
                         </button>
                       </form>
                     </div>

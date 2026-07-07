@@ -59,8 +59,8 @@ export const MascotPlaceholder: React.FC<MascotProps> = ({
       animate={getPoseAnimation()}
       style={{ width: size, height: size }}
     >
-      {/* Soft purple/violet-to-white gradient glow behind the mascot */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.25)_0%,rgba(255,255,255,0.1)_50%,transparent_100%)] blur-2xl rounded-full -z-10 w-full h-full scale-125 pointer-events-none" />
+      {/* Rich glowing violet-purple ambient backdrop behind the mascot */}
+      <div className="absolute w-[140%] h-[140%] bg-purple-600/30 rounded-full blur-3xl -z-10 pointer-events-none animate-pulse duration-[4000ms]" />
       <svg
         viewBox="0 0 200 200"
         fill="none"
