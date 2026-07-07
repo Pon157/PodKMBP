@@ -2,6 +2,8 @@ import { Telegraf } from 'telegraf';
 import { Storage } from './src/db/storage.ts';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
 
 dotenv.config();
 
@@ -66,7 +68,22 @@ if (!token) {
             const fileId = photos.photos[0][0].file_id;
             const file = await ctx.telegram.getFile(fileId);
             if (file && file.file_path) {
-              avatarUrl = `/api/avatar-proxy?file_path=${encodeURIComponent(file.file_path)}`;
+              const downloadUrl = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+              const response = await fetch(downloadUrl);
+              if (response.ok) {
+                const arrayBuffer = await response.arrayBuffer();
+                const buffer = Buffer.from(arrayBuffer);
+                const uploadsDir = path.join(process.cwd(), 'uploads');
+                if (!fs.existsSync(uploadsDir)) {
+                  fs.mkdirSync(uploadsDir, { recursive: true });
+                }
+                const avatarFilename = `avatar_${user.id}_${Date.now()}.jpg`;
+                fs.writeFileSync(path.join(uploadsDir, avatarFilename), buffer);
+                avatarUrl = `/uploads/${avatarFilename}`;
+                console.log('✅ Successfully downloaded and saved user avatar locally to:', avatarUrl);
+              } else {
+                console.error('Failed to download user avatar from Telegram, response status:', response.status);
+              }
             }
           }
         } catch (e) {
@@ -117,7 +134,14 @@ bot.command('my_takes', async (ctx) => {
         : t.status === 'taken' 
           ? '<tg-emoji emoji-id="5443038326535759644">💬</tg-emoji> В работе' 
           : '<tg-emoji emoji-id="5206607081334906820">✔️</tg-emoji> Решено';
-      const typeLabel = t.type === 'take' ? 'Тейк' : 'Идея';
+      let typeLabel = 'Тейк';
+      if (t.type === 'idea') {
+        typeLabel = 'Идея';
+      } else if (t.type === 'support_idea') {
+        typeLabel = 'Идея в ТП';
+      } else if (t.type === 'support_complaint') {
+        typeLabel = 'Обращение в ТП';
+      }
       text += `<tg-emoji emoji-id="5427168083074628963">💎</tg-emoji> <b>${i + 1}. [${typeLabel}]</b> "${t.content.substring(0, 35)}..."\n   <b>Статус:</b> ${statusEmoji}\n   <b>ID:</b> <code>${t.id}</code>\n\n`;
       
       return [{
@@ -294,7 +318,19 @@ bot.on('message', async (ctx) => {
     try {
       // Small delay to let storage initialize first
       await new Promise(r => setTimeout(r, 1000));
-      await bot.launch();
+      
+      // Clean webhook to avoid 409 conflict
+      try {
+        await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+        console.log('🧹 Cleaned existing Telegram webhooks to prevent conflicts.');
+      } catch (e) {
+        console.warn('⚠️ Webhook clean warning:', e);
+      }
+
+      await bot.launch({
+        allowedUpdates: [],
+        dropPendingUpdates: true
+      });
       console.log('🚀 Telegram Bot started successfully!');
     } catch (err) {
       console.error('💥 Critical error starting Telegram Bot:', err);

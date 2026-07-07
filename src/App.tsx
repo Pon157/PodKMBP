@@ -11,7 +11,8 @@ import { AdminPanel } from './components/AdminPanel';
 import { 
   Sparkles, ExternalLink, MessageSquare, AlertCircle, 
   ChevronRight, Heart, Send, Check, Shield, HelpCircle, 
-  MapPin, Eye, Play, Plus, BookOpen, Volume2, Globe, Trash2, Lock, ShieldAlert
+  MapPin, Eye, Play, Plus, BookOpen, Volume2, Globe, Trash2, Lock, ShieldAlert,
+  Lightbulb, AlertTriangle
 } from 'lucide-react';
 
 // Safe profile urls parser supporting JSON arrays, comma-separated, or single urls
@@ -485,8 +486,9 @@ const SupportPage: React.FC<SupportPageProps> = ({ tgUser }) => {
         body: JSON.stringify({
           type: supportType,
           content: content.trim(),
-          imageUrl: JSON.stringify(mediaList),
+          imageUrl: mediaList.length > 0 ? JSON.stringify(mediaList) : null,
           targetAdminId: 'owner', // Support always goes directly to the owner!
+          userTgId: tgUser?.tgId || null,
           userTgUsername: userContact.replace('@', '').trim() || null,
           userTgName: tgUser?.firstName || null,
           captchaId: captcha?.captchaId,
@@ -515,25 +517,27 @@ const SupportPage: React.FC<SupportPageProps> = ({ tgUser }) => {
       <div className="max-w-5xl xl:max-w-7xl 2xl:max-w-screen-2xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 xl:gap-14 items-center relative transition-all">
         
         {/* LEFT COLUMN: SUPPORT MASCOT (cols 4) */}
-        <div className="md:col-span-4 flex flex-col items-center gap-4 relative">
+        <div className="md:col-span-4 flex flex-col items-center gap-4 relative z-0">
           {/* Beautiful glowing purple backdrop */}
-          <div className="absolute w-72 h-72 bg-purple-600/35 rounded-full blur-3xl pointer-events-none -z-10 animate-pulse duration-[3500ms]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-purple-600/45 rounded-full blur-3xl pointer-events-none z-0 animate-pulse duration-[3500ms]" />
           
           {!supportImageFailed ? (
             <motion.div
               animate={{ y: [-5, 5, -5] }}
               transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
-              className="w-full max-w-[200px] sm:max-w-[240px] xl:max-w-[320px] 2xl:max-w-[380px]"
+              className="w-full max-w-[200px] sm:max-w-[240px] xl:max-w-[320px] 2xl:max-w-[380px] relative z-10"
             >
               <img
                 src="/support.png"
                 alt="Маскот Поддержка"
-                className="w-full h-auto object-contain drop-shadow-2xl"
+                className="w-full h-auto object-contain drop-shadow-2xl bg-transparent"
                 onError={() => setSupportImageFailed(true)}
               />
             </motion.div>
           ) : (
-            <MascotPlaceholder pose="greeting" size={200} className="xl:scale-130 transition-transform" />
+            <div className="relative z-10">
+              <MascotPlaceholder pose="greeting" size={200} className="xl:scale-130 transition-transform" />
+            </div>
           )}
           
           <div className="bg-wine-dark/40 border border-gummy/20 rounded-xl p-3.5 text-center text-xs xl:text-sm max-w-xs text-gummy/85 leading-relaxed">
@@ -596,7 +600,7 @@ const SupportPage: React.FC<SupportPageProps> = ({ tgUser }) => {
                         : 'bg-wine-dark/40 border-gummy/20 hover:border-gummy/40 text-gummy'
                     }`}
                   >
-                    ⚠️ Написать жалобу / вопрос
+                    <AlertTriangle size={14} /> Написать жалобу / вопрос
                   </button>
                   <button
                     id="support-type-idea"
@@ -608,7 +612,7 @@ const SupportPage: React.FC<SupportPageProps> = ({ tgUser }) => {
                         : 'bg-wine-dark/40 border-gummy/20 hover:border-gummy/40 text-gummy'
                     }`}
                   >
-                    💡 Предложить идею
+                    <Lightbulb size={14} /> Предложить идею
                   </button>
                 </div>
               </div>
@@ -1674,23 +1678,25 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
           </div>
 
           {/* Mascot with glowing purple background */}
-          <div className="flex flex-col items-center gap-3 relative">
-            <div className="absolute w-56 h-56 bg-purple-600/35 rounded-full blur-3xl pointer-events-none -z-10 animate-pulse duration-[3000ms]" />
+          <div className="flex flex-col items-center gap-3 relative z-0">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 bg-purple-600/45 rounded-full blur-3xl pointer-events-none z-0 animate-pulse duration-[3000ms]" />
             {!takeImageFailed ? (
               <motion.div
                 animate={{ y: [-5, 5, -5] }}
                 transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
-                className="w-full max-w-[150px] sm:max-w-[180px] xl:max-w-[240px]"
+                className="w-full max-w-[150px] sm:max-w-[180px] xl:max-w-[240px] relative z-10"
               >
                 <img
                   src="/take.png"
                   alt="Маскот Тейк"
-                  className="w-full h-auto object-contain drop-shadow-2xl"
+                  className="w-full h-auto object-contain drop-shadow-2xl bg-transparent"
                   onError={() => setTakeImageFailed(true)}
                 />
               </motion.div>
             ) : (
-              <MascotPlaceholder pose={tgUser ? "thinking" : "neutral"} size={160} className="xl:scale-120 transition-transform" />
+              <div className="relative z-10">
+                <MascotPlaceholder pose={tgUser ? "thinking" : "neutral"} size={160} className="xl:scale-120 transition-transform" />
+              </div>
             )}
             <div className="bg-wine-dark/20 border border-gummy/10 rounded-xl px-3 py-2 text-center text-[10px] xl:text-xs text-gummy/60 max-w-xs leading-relaxed">
               {tgUser 

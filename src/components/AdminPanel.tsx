@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   Users, UserCheck, MessageSquare, FileText, Settings, LogOut, 
-  Plus, Edit2, Trash2, Send, CornerDownRight, Check, AlertCircle, ShieldAlert 
+  Plus, Edit2, Trash2, Send, CornerDownRight, Check, AlertCircle, ShieldAlert,
+  Clock, CheckCircle2, Lightbulb, AlertTriangle
 } from 'lucide-react';
 import { MusicPlayer } from './MusicPlayer';
 
@@ -996,34 +997,95 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     Мои диалоги
                   </h3>
 
-                  {takes.filter(t => t.targetAdminId === currentAdmin.id || t.takenBy === currentAdmin.id).length === 0 ? (
-                    <p className="text-xs text-gummy/50 text-center py-8">У вас пока нет взятых тейков.</p>
-                  ) : (
-                    <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-1">
-                      {takes.filter(t => t.targetAdminId === currentAdmin.id || t.takenBy === currentAdmin.id).map((take) => (
-                        <button
-                          key={take.id}
-                          id={`chat-item-${take.id}`}
-                          onClick={() => setActiveTakeChatId(take.id)}
-                          className={`w-full text-left p-3 rounded-lg border transition-all flex flex-col gap-1.5 ${
-                            activeTakeChatId === take.id 
-                              ? 'bg-gummy border-gummy text-wine' 
-                              : 'bg-wine border-gummy/20 hover:border-gummy/50 text-gummy'
-                          }`}
-                        >
-                          <div className="flex justify-between items-center w-full">
-                            <span className="text-[10px] uppercase font-mono font-bold">
-                              {take.type === 'take' ? 'Тейк' : 'Идея'}
-                            </span>
-                            <span className={`text-[9px] font-mono ${activeTakeChatId === take.id ? 'text-wine/60' : 'text-gummy/50'}`}>
-                              {new Date(take.createdAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <p className="text-xs font-semibold truncate w-full">{take.content}</p>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  {(() => {
+                    const myTakes = takes.filter(t => t.targetAdminId === currentAdmin.id || t.takenBy === currentAdmin.id);
+                    if (myTakes.length === 0) {
+                      return <p className="text-xs text-gummy/50 text-center py-8">У вас пока нет взятых тейков.</p>;
+                    }
+                    
+                    const sortedMyTakes = [...myTakes].sort((a, b) => {
+                      const timeA = a.dialogue && a.dialogue.length > 0 
+                        ? new Date(a.dialogue[a.dialogue.length - 1].createdAt).getTime() 
+                        : new Date(a.createdAt).getTime();
+                      const timeB = b.dialogue && b.dialogue.length > 0 
+                        ? new Date(b.dialogue[b.dialogue.length - 1].createdAt).getTime() 
+                        : new Date(b.createdAt).getTime();
+                      return timeB - timeA;
+                    });
+
+                    return (
+                      <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-1">
+                        {sortedMyTakes.map((take) => {
+                          const isActive = activeTakeChatId === take.id;
+                          const lastMsg = take.dialogue && take.dialogue.length > 0 
+                            ? take.dialogue[take.dialogue.length - 1] 
+                            : null;
+                          
+                          // Build status label
+                          let statusLabel = 'Ожидает';
+                          let StatusIcon = Clock;
+                          let statusColor = 'text-yellow-400';
+                          if (take.status === 'taken') {
+                            statusLabel = 'В работе';
+                            StatusIcon = MessageSquare;
+                            statusColor = 'text-blue-400';
+                          } else if (take.status === 'resolved') {
+                            statusLabel = 'Решено';
+                            StatusIcon = CheckCircle2;
+                            statusColor = 'text-green-400';
+                          }
+
+                          return (
+                            <button
+                              key={take.id}
+                              id={`chat-item-${take.id}`}
+                              onClick={() => setActiveTakeChatId(take.id)}
+                              className={`w-full text-left p-3 rounded-lg border transition-all flex flex-col gap-1.5 ${
+                                isActive 
+                                  ? 'bg-gummy border-gummy text-wine animate-none' 
+                                  : 'bg-wine border-gummy/20 hover:border-gummy/50 text-gummy'
+                              }`}
+                            >
+                              <div className="flex justify-between items-center w-full">
+                                <span className={`text-[10px] uppercase font-mono font-bold ${isActive ? 'text-wine/80' : 'text-gummy-light'}`}>
+                                  {take.type === 'take' ? 'Тейк' : 'Идея'}
+                                </span>
+                                <span className={`text-[9px] font-mono ${isActive ? 'text-wine/60' : 'text-gummy/50'}`}>
+                                  {new Date(take.createdAt).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <p className={`text-xs font-semibold truncate w-full ${isActive ? 'text-wine' : 'text-white'}`}>{take.content}</p>
+                              
+                              {/* Status Line */}
+                              <div className="flex flex-col gap-0.5 border-t border-black/5 pt-1 mt-0.5 w-full text-[10px]">
+                                <div className="flex justify-between items-center w-full">
+                                  <span className={`font-mono flex items-center gap-1 font-bold ${isActive ? 'text-wine/70' : statusColor}`}>
+                                    <StatusIcon size={10} />
+                                    {statusLabel}
+                                  </span>
+                                  {lastMsg && (
+                                    <span className={`text-[8px] opacity-60 font-mono`}>
+                                      {new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className={`truncate max-w-full italic text-[10px] ${isActive ? 'text-wine/75' : 'text-gummy/60'}`}>
+                                  {lastMsg ? (
+                                    <>
+                                      <strong>{lastMsg.sender === 'admin' ? 'Вы: ' : 'Юзер: '}</strong>
+                                      {lastMsg.text}
+                                    </>
+                                  ) : (
+                                    'Нет сообщений'
+                                  )}
+                                </p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Chat window panel */}
@@ -1472,39 +1534,104 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     Тех. поддержка и Идеи
                   </h3>
 
-                  {takes.filter(t => t.type === 'support_idea' || t.type === 'support_complaint').length === 0 ? (
-                    <p className="text-xs text-gummy/50 text-center py-8">Обращений в поддержку пока нет.</p>
-                  ) : (
-                    <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-1">
-                      {takes.filter(t => t.type === 'support_idea' || t.type === 'support_complaint').map((take) => (
-                        <button
-                          key={take.id}
-                          id={`support-chat-item-${take.id}`}
-                          onClick={() => setActiveTakeChatId(take.id)}
-                          className={`w-full text-left p-3 rounded-lg border transition-all flex flex-col gap-1.5 ${
-                            activeTakeChatId === take.id 
-                              ? 'bg-gummy border-gummy text-wine' 
-                              : 'bg-wine border-gummy/20 hover:border-gummy/50 text-gummy'
-                          }`}
-                        >
-                          <div className="flex justify-between items-center w-full">
-                            <span className="text-[9px] uppercase font-mono font-bold bg-wine-dark/40 border border-gummy/20 px-1.5 py-0.5 rounded text-white">
-                              {take.type === 'support_idea' ? 'Идея 💡' : 'Жалоба ⚠️'}
-                            </span>
-                            <span className={`text-[9px] font-mono ${activeTakeChatId === take.id ? 'text-wine/60' : 'text-gummy/50'}`}>
-                              {new Date(take.createdAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <p className="text-xs font-semibold truncate w-full">{take.content}</p>
-                          {take.userTgUsername && (
-                            <span className="text-[9px] font-mono opacity-80">
-                              От: @{take.userTgUsername}
-                            </span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  {(() => {
+                    const supportTakes = takes.filter(t => t.type === 'support_idea' || t.type === 'support_complaint');
+                    if (supportTakes.length === 0) {
+                      return <p className="text-xs text-gummy/50 text-center py-8">Обращений в поддержку пока нет.</p>;
+                    }
+
+                    const sortedSupport = [...supportTakes].sort((a, b) => {
+                      const timeA = a.dialogue && a.dialogue.length > 0 
+                        ? new Date(a.dialogue[a.dialogue.length - 1].createdAt).getTime() 
+                        : new Date(a.createdAt).getTime();
+                      const timeB = b.dialogue && b.dialogue.length > 0 
+                        ? new Date(b.dialogue[b.dialogue.length - 1].createdAt).getTime() 
+                        : new Date(b.createdAt).getTime();
+                      return timeB - timeA;
+                    });
+
+                    return (
+                      <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-1">
+                        {sortedSupport.map((take) => {
+                          const isActive = activeTakeChatId === take.id;
+                          const lastMsg = take.dialogue && take.dialogue.length > 0 
+                            ? take.dialogue[take.dialogue.length - 1] 
+                            : null;
+
+                          // Build status label
+                          let statusLabel = 'Ожидает';
+                          let StatusIcon = Clock;
+                          let statusColor = 'text-yellow-400';
+                          if (take.status === 'taken') {
+                            statusLabel = 'В работе';
+                            StatusIcon = MessageSquare;
+                            statusColor = 'text-blue-400';
+                          } else if (take.status === 'resolved') {
+                            statusLabel = 'Решено';
+                            StatusIcon = CheckCircle2;
+                            statusColor = 'text-green-400';
+                          }
+
+                          return (
+                            <button
+                              key={take.id}
+                              id={`support-chat-item-${take.id}`}
+                              onClick={() => setActiveTakeChatId(take.id)}
+                              className={`w-full text-left p-3 rounded-lg border transition-all flex flex-col gap-1.5 ${
+                                isActive 
+                                  ? 'bg-gummy border-gummy text-wine animate-none' 
+                                  : 'bg-wine border-gummy/20 hover:border-gummy/50 text-gummy'
+                              }`}
+                            >
+                              <div className="flex justify-between items-center w-full">
+                                <span className={`text-[9px] uppercase font-mono font-bold px-1.5 py-0.5 rounded ${
+                                  isActive ? 'bg-wine-dark/20 text-wine' : 'bg-wine-dark/40 border border-gummy/20 text-white'
+                                }`}>
+                                  {take.type === 'support_idea' ? 'Идея' : 'Жалоба'}
+                                </span>
+                                <span className={`text-[9px] font-mono ${isActive ? 'text-wine/60' : 'text-gummy/50'}`}>
+                                  {new Date(take.createdAt).toLocaleDateString()}
+                                </span>
+                              </div>
+                              
+                              <p className={`text-xs font-semibold truncate w-full ${isActive ? 'text-wine' : 'text-white'}`}>{take.content}</p>
+                              
+                              {take.userTgUsername && (
+                                <span className={`text-[9px] font-mono opacity-80 ${isActive ? 'text-wine/85 font-semibold' : ''}`}>
+                                  От: @{take.userTgUsername}
+                                </span>
+                              )}
+
+                              {/* Status Line */}
+                              <div className="flex flex-col gap-0.5 border-t border-black/5 pt-1 mt-0.5 w-full text-[10px]">
+                                <div className="flex justify-between items-center w-full">
+                                  <span className={`font-mono flex items-center gap-1 font-bold ${isActive ? 'text-wine/70' : statusColor}`}>
+                                    <StatusIcon size={10} />
+                                    {statusLabel}
+                                  </span>
+                                  {lastMsg && (
+                                    <span className={`text-[8px] opacity-60 font-mono`}>
+                                      {new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className={`truncate max-w-full italic text-[10px] ${isActive ? 'text-wine/75' : 'text-gummy/60'}`}>
+                                  {lastMsg ? (
+                                    <>
+                                      <strong>{lastMsg.sender === 'admin' ? 'Вы: ' : 'Юзер: '}</strong>
+                                      {lastMsg.text}
+                                    </>
+                                  ) : (
+                                    'Нет сообщений'
+                                  )}
+                                </p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Support Chat window panel */}
@@ -1514,8 +1641,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       {/* Active Chat Header */}
                       <div className="border-b border-gummy/20 pb-3 mb-3 flex flex-col gap-1">
                         <div className="flex justify-between items-start">
-                          <span className="text-xs uppercase font-mono font-bold bg-wine-dark/40 border border-gummy/20 px-2 py-0.5 rounded">
-                            {activeChatTake.type === 'support_idea' ? 'Идея 💡' : 'Жалоба / Тех. поддержка ⚠️'}
+                          <span className="text-xs uppercase font-mono font-bold bg-wine-dark/40 border border-gummy/20 px-2 py-0.5 rounded flex items-center gap-1">
+                            {activeChatTake.type === 'support_idea' ? (
+                              <>
+                                <Lightbulb size={12} className="text-yellow-400" />
+                                Идея
+                              </>
+                            ) : (
+                              <>
+                                <AlertTriangle size={12} className="text-red-400" />
+                                Жалоба / Тех. поддержка
+                              </>
+                            )}
                           </span>
                           <span className="text-xs text-gummy/60 font-mono">ID: {activeChatTake.id}</span>
                         </div>
