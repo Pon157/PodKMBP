@@ -167,7 +167,10 @@ export default function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-wine text-gummy relative selection:bg-gummy selection:text-wine overflow-x-hidden font-sans">
+      <div 
+        className="min-h-screen text-gummy relative selection:bg-gummy selection:text-wine overflow-x-hidden font-sans"
+        style={{ background: 'radial-gradient(circle at center, #6A0D28 30%, #4A0518 75%, #FBAFD5 180%)' }}
+      >
         
         {/* Decorative elements present globally on non-panel pages */}
         <GlobalDecorations tgUser={tgUser} onLogoutTg={handleLogoutTg} />
@@ -186,6 +189,7 @@ export default function App() {
           <Route path="/anketa" element={<AnketaPage />} />
           <Route path="/survey" element={<SurveyFormPage />} />
           <Route path="/unions" element={<UnionsPage unions={unions} />} />
+          <Route path="/mascot" element={<MascotPage />} />
           
           {/* Admin panel routing wrapper */}
           <Route 
@@ -811,28 +815,18 @@ const MainInfoPage: React.FC<MainInfoPageProps> = ({ admins, unions }) => {
           </button>
         </div>
 
-        {/* HORIZONTAL PHOTO UNDER CORE BUTTONS */}
-        <div className="flex justify-center -my-3">
-          {!infoImageFailed ? (
-            <motion.div
-              animate={{ y: [3, -3, 3], rotate: [0, 0.5, -0.5, 0] }}
-              transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
-              className="w-full max-w-[400px] xl:max-w-[550px] 2xl:max-w-[650px]"
-            >
-              <img
-                src="/горизонтально_под_кнопками.png"
-                alt="Горизонтальная фото под кнопками"
-                className="w-full h-auto object-contain drop-shadow-2xl rounded-2xl border border-gummy/20"
-                onError={() => setInfoImageFailed(true)}
-              />
-            </motion.div>
-          ) : (
-            <MascotPlaceholder pose="lying" size={200} className="xl:scale-125 transition-transform" />
-          )}
+        {/* TITLE AND SUBTITLE BLOCK */}
+        <div className="text-center my-4">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl xl:text-7xl font-display font-bold text-white tracking-tight drop-shadow-lg">
+            Podslushano KMBP
+          </h1>
+          <p className="text-xs sm:text-sm md:text-base xl:text-lg text-gummy-light font-semibold uppercase tracking-wider mt-2.5 opacity-90">
+            Подслушано кмбп, сладкие сплетни & горькая правда
+          </p>
         </div>
 
         {/* ABOUT INFO & STANDING MASCOT GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 xl:gap-16 items-center relative">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 xl:gap-16 items-center relative">
           
           {/* Decorative flying clouds and flowers extending beyond border on the left */}
           <div className="absolute -left-24 top-1/2 -translate-y-1/2 flex flex-col gap-6 z-0 opacity-45 pointer-events-none hidden xl:flex">
@@ -842,12 +836,12 @@ const MainInfoPage: React.FC<MainInfoPageProps> = ({ admins, unions }) => {
             <AnimatedFlower size={55} delay={0.5} />
           </div>
 
-          {/* Info field in center (span 3 cols) */}
-          <div className="md:col-span-3 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 md:p-10 xl:p-14 2xl:p-20 shadow-xl relative z-10 transition-all">
+          {/* Info field in center (span 3 cols - resized smaller) */}
+          <div className="md:col-span-3 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 md:p-8 xl:p-10 2xl:p-12 shadow-xl relative z-10 transition-all">
             <span className="text-[10px] xl:text-xs uppercase tracking-widest font-mono text-gummy/60 font-bold block mb-1">Информация</span>
             <h2 className="text-xl md:text-2xl xl:text-4xl 2xl:text-5xl font-display font-bold text-white mb-4">О нас</h2>
-            <p className="text-sm md:text-base xl:text-lg 2xl:text-2xl text-gummy-light leading-relaxed xl:leading-loose whitespace-pre-line">
-              ПРИНИМАЕМ СПЛЕТНИ СО ВСЕХ КФ  Наша команда обрабатывает все ваши идеи, анонимные тейки и предложения, чтобы публиковать их яркими и веселыми. 
+            <p className="text-sm md:text-base xl:text-lg 2xl:text-xl text-gummy-light leading-relaxed xl:leading-loose whitespace-pre-line font-sans">
+              Добро пожаловать в Подслушано КМБП — главное анонимное пространство нашего сообщества. Мы создали эту платформу, чтобы каждый мог открыто поделиться своими мыслями, раскрыть секреты, обсудить актуальные новости или предложить интересные идеи. Наша цель — объединять людей, создавать уютную атмосферу для общения, обмениваться сладкими сплетнями и горькой правдой. Каждое отправленное сообщение проходит модерацию для защиты участников, сохраняя при этом абсолютную конфиденциальность авторов.
             </p>
             <div className="mt-4 flex flex-wrap gap-2.5">
               <span className="text-xs xl:text-sm bg-wine/60 border border-gummy/30 px-3 py-1 xl:px-4 xl:py-1.5 rounded-full font-semibold">100% Анонимно</span>
@@ -855,24 +849,45 @@ const MainInfoPage: React.FC<MainInfoPageProps> = ({ admins, unions }) => {
             </div>
           </div>
 
-          {/* Standing mascot / relocated photo on the right (span 1 col) */}
-          <div className="flex justify-center md:justify-start z-10 xl:scale-130 2xl:scale-150 transition-transform origin-center">
-            {!aboutImageFailed ? (
-              <motion.div
-                animate={{ y: [-5, 5, -5] }}
-                transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
-                className="w-full max-w-[170px] xl:max-w-[240px]"
+          {/* Standing mascot / relocated photo on the right (span 2 cols - resized bigger) */}
+          <div className="md:col-span-2 flex flex-col items-center gap-4 z-10">
+            <div className="xl:scale-140 2xl:scale-160 transition-transform origin-center">
+              {!aboutImageFailed ? (
+                <motion.div
+                  animate={{ y: [-5, 5, -5] }}
+                  transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+                  className="w-full max-w-[220px] xl:max-w-[280px]"
+                >
+                  <img
+                    src="/mainmenu(info).png"
+                    alt="О нас фото"
+                    className="w-full h-auto object-contain drop-shadow-2xl"
+                    onError={() => setAboutImageFailed(true)}
+                  />
+                </motion.div>
+              ) : (
+                <MascotPlaceholder pose="neutral" size={240} />
+              )}
+            </div>
+
+            {/* Speech Bubble pointing to the mascot */}
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="relative bg-gummy text-wine p-4 rounded-2xl font-bold shadow-lg text-center flex flex-col items-center gap-2 max-w-[220px] mt-4 xl:mt-8"
+            >
+              {/* Speech bubble tail pointing up to the mascot */}
+              <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-gummy transform rotate-45" />
+              <span className="text-[11px] uppercase tracking-wider font-display">Хочешь узнать обо мне больше?</span>
+              <button 
+                id="tell-about-self-btn"
+                onClick={() => navigate('/mascot')}
+                className="bg-wine text-gummy text-xs font-bold py-2.5 px-5 rounded-xl hover:bg-white hover:text-wine transition-all cursor-pointer shadow-md"
               >
-                <img
-                  src="/mainmenu(info).png"
-                  alt="О нас фото"
-                  className="w-full h-auto object-contain drop-shadow-2xl"
-                  onError={() => setAboutImageFailed(true)}
-                />
-              </motion.div>
-            ) : (
-              <MascotPlaceholder pose="neutral" size={170} />
-            )}
+                Рассказать о себе
+              </button>
+            </motion.div>
           </div>
         </div>
 
@@ -1204,9 +1219,16 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
           )}
         </div>
 
-        {/* Mascot pointing from bottom-right corner */}
-        <div className="self-end mr-8 mt-4 xl:scale-150 transition-transform origin-right">
-          <MascotPlaceholder pose="pointing-left" size={140} />
+        {/* Mascot on the bottom-left corner */}
+        <div className="self-start ml-8 mt-4 xl:scale-150 transition-transform origin-left">
+          <img 
+            src="/списокадминов.png" 
+            alt="Маскот Список админов" 
+            className="max-w-[140px] h-auto object-contain drop-shadow-2xl" 
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
         </div>
 
         {/* FULL ADMIN INFO DETAILED MODAL */}
@@ -1985,12 +2007,19 @@ const AnketaPage: React.FC = () => {
       <div className="max-w-5xl xl:max-w-7xl 2xl:max-w-screen-2xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 xl:gap-14 items-center justify-center transition-all">
         
         {/* Left Mascot */}
-        <div className="md:col-span-3 flex justify-center xl:scale-130 transition-transform">
-          <MascotPlaceholder pose="greeting" size={170} />
+        <div className="md:col-span-4 flex justify-center xl:scale-130 transition-transform">
+          <img 
+            src="/заявки.png" 
+            alt="Маскот Заявки" 
+            className="max-w-[200px] xl:max-w-[260px] h-auto object-contain drop-shadow-2xl" 
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
         </div>
 
         {/* Center Panel */}
-        <div className="md:col-span-6 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-8 xl:p-14 text-center shadow-2xl relative transition-all">
+        <div className="md:col-span-8 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-8 xl:p-14 text-center shadow-2xl relative transition-all">
           <HelpCircle className="mx-auto text-gummy mb-4 xl:scale-150 xl:mb-6" size={32} />
           <h2 className="font-display font-bold text-white text-xl md:text-2xl xl:text-4xl mb-4 leading-normal">
             Хочешь к нам в команду? Мы хотим тебя видеть!
@@ -2015,11 +2044,6 @@ const AnketaPage: React.FC = () => {
               Назад
             </button>
           </div>
-        </div>
-
-        {/* Right Mascot */}
-        <div className="md:col-span-3 flex justify-center xl:scale-130 transition-transform">
-          <MascotPlaceholder pose="neutral" size={170} />
         </div>
 
       </div>
@@ -2108,8 +2132,16 @@ const SurveyFormPage: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="max-w-3xl xl:max-w-5xl 2xl:max-w-6xl w-full bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 md:p-10 xl:p-16 shadow-xl transition-all">
-        <div className="border-b border-gummy/20 pb-4 mb-6 flex justify-between items-center">
+      <div className="max-w-5xl xl:max-w-7xl 2xl:max-w-screen-2xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 items-center justify-center transition-all">
+        
+        {/* Left Mascot */}
+        <div className="md:col-span-4 flex justify-center xl:scale-130 transition-transform">
+          <MascotPlaceholder pose="thinking" size={200} />
+        </div>
+
+        {/* Form Panel */}
+        <div className="md:col-span-8 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 md:p-10 xl:p-16 shadow-xl w-full transition-all">
+          <div className="border-b border-gummy/20 pb-4 mb-6 flex justify-between items-center">
           <div>
             <h2 className="text-xl md:text-2xl xl:text-4xl font-display font-bold text-white">Анкета кандидата</h2>
             <p className="text-xs xl:text-base text-gummy/60 mt-0.5">Помогите нам узнать о вас поближе</p>
@@ -2257,6 +2289,50 @@ const SurveyFormPage: React.FC = () => {
 
           </form>
         )}
+        </div>
+      </div>
+    </PageTransition>
+  );
+};
+
+// Mascot Detail Page (Mitsuki)
+const MascotPage: React.FC = () => {
+  const navigate = useNavigate();
+
+  return (
+    <PageTransition>
+      <div className="max-w-5xl xl:max-w-7xl 2xl:max-w-screen-2xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 xl:gap-14 items-center justify-center transition-all relative">
+        
+        {/* Mascot on the left, at the boundary */}
+        <div className="md:col-span-4 flex justify-center md:justify-start xl:scale-130 transition-transform md:-ml-8 lg:-ml-16">
+          <MascotPlaceholder pose="greeting" size={240} className="drop-shadow-2xl" />
+        </div>
+
+        {/* Description Panel on the right */}
+        <div className="md:col-span-8 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 sm:p-10 xl:p-16 shadow-2xl relative flex flex-col gap-6 transition-all">
+          <div className="border-b border-gummy/20 pb-3 mb-1">
+            <span className="text-[10px] xl:text-xs uppercase tracking-widest font-mono text-gummy/60 font-bold block mb-1">Официальный маскот</span>
+            <h2 className="font-display font-bold text-white text-2xl md:text-3xl xl:text-5xl">Мицуки</h2>
+          </div>
+
+          <div className="text-sm md:text-base xl:text-lg 2xl:text-2xl text-gummy-light leading-relaxed xl:leading-loose space-y-4 font-sans">
+            <p>
+              Мицуки — это официальный маскот и душа нашего портала Подслушано КМБП. Она олицетворяет собой дружелюбие, любопытство и искренность, помогая пользователям чувствовать себя комфортно при отправке своих откровений.
+            </p>
+            <p>
+              Мицуки всегда находится на страже ваших секретов, бережно собирая анонимные тейки и идеи. Ее образ сочетает в себе нежность и готовность выслушать каждого, будь то веселая сплетня или серьезное переживание. Она связывает участников сообщества и помогает поддерживать атмосферу тепла и доверия на нашей платформе.
+            </p>
+          </div>
+
+          <button
+            id="mascot-back-btn"
+            onClick={() => navigate('/info')}
+            className="w-full sm:w-auto self-end px-8 py-3.5 bg-gummy text-wine font-bold text-xs xl:text-base rounded-xl hover:bg-white transition-all shadow-md cursor-pointer"
+          >
+            Вернуться на главную
+          </button>
+        </div>
+
       </div>
     </PageTransition>
   );
@@ -2289,13 +2365,20 @@ const UnionsPage: React.FC<UnionsPageProps> = ({ unions: initialUnions }) => {
     <PageTransition>
       <div className="max-w-5xl xl:max-w-7xl 2xl:max-w-screen-2xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 xl:gap-14 items-center justify-center transition-all">
         
-        {/* Left Mascot */}
-        <div className="md:col-span-3 flex justify-center xl:scale-130 transition-transform">
-          <MascotPlaceholder pose="greeting" size={170} />
+        {/* Left Mascot - В Союзы - positioned at the boundary */}
+        <div className="md:col-span-4 flex justify-center md:justify-start xl:scale-130 transition-transform md:-ml-12 lg:-ml-20">
+          <img 
+            src="/ВСОЮЗЫ.png" 
+            alt="Маскот В Союзы" 
+            className="max-w-[200px] xl:max-w-[260px] h-auto object-contain drop-shadow-2xl" 
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
         </div>
 
         {/* Center content */}
-        <div className="md:col-span-6 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 sm:p-8 md:p-10 xl:p-16 shadow-2xl relative flex flex-col gap-6 transition-all">
+        <div className="md:col-span-8 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 sm:p-8 md:p-10 xl:p-16 shadow-2xl relative flex flex-col gap-6 transition-all">
           <div className="border-b border-gummy/20 pb-3 mb-1 text-center">
             <h2 className="font-display font-bold text-white text-xl md:text-2xl xl:text-4xl">Наши союзы</h2>
             <p className="text-xs xl:text-sm text-gummy/50 mt-0.5 font-mono">Wine Mascot Alliance & Partners</p>
@@ -2331,11 +2414,6 @@ const UnionsPage: React.FC<UnionsPageProps> = ({ unions: initialUnions }) => {
           >
             Вернуться на главную
           </button>
-        </div>
-
-        {/* Right Mascot */}
-        <div className="md:col-span-3 flex justify-center xl:scale-130 transition-transform">
-          <MascotPlaceholder pose="neutral" size={170} />
         </div>
 
       </div>

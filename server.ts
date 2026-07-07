@@ -7,7 +7,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-import { sendTelegramNotification } from './bot.ts';
+import { sendTelegramNotification, sendTelegramNotificationWithMedia } from './bot.ts';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 
 const app = express();
@@ -40,7 +40,7 @@ function getActiveCount(): number {
 }
 
 // Telegram Bot helper
-async function notifyTelegram(tgId: string, text: string) {
+async function notifyTelegram(tgId: string, text: string, mediaUrls?: string[]) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) {
     console.log('[Telegram Bot Mock] Token not set in .env. Notification text:', text);
@@ -48,10 +48,18 @@ async function notifyTelegram(tgId: string, text: string) {
   }
   try {
     // Try sending through the bot client first (which supports proxy!)
-    const sent = await sendTelegramNotification(tgId, text);
-    if (sent) {
-      console.log('Telegram message sent successfully via bot client to:', tgId);
-      return;
+    if (mediaUrls && mediaUrls.length > 0) {
+      const sent = await sendTelegramNotificationWithMedia(tgId, text, mediaUrls);
+      if (sent) {
+        console.log('Telegram media message sent successfully via bot client to:', tgId);
+        return;
+      }
+    } else {
+      const sent = await sendTelegramNotification(tgId, text);
+      if (sent) {
+        console.log('Telegram message sent successfully via bot client to:', tgId);
+        return;
+      }
     }
 
     console.log('Bot client not ready or failed, falling back to direct Telegram API fetch...');
@@ -414,7 +422,20 @@ app.post('/api/takes', async (req, res) => {
         `<b>Содержание:</b>\n<i>${content}</i>\n` +
         (imageUrl ? `\n🖼️ <i>Прикреплено изображение</i>` : '') +
         `\n\n🔗 <i>Откройте панель администрирования для ответа!</i>`;
-      await notifyTelegram(targetTgId, text);
+      
+      let mediaUrls: string[] = [];
+      if (imageUrl) {
+        try {
+          if (imageUrl.startsWith('[')) {
+            mediaUrls = JSON.parse(imageUrl);
+          } else {
+            mediaUrls = [imageUrl];
+          }
+        } catch (e) {
+          mediaUrls = [imageUrl];
+        }
+      }
+      await notifyTelegram(targetTgId, text, mediaUrls);
     }
 
     res.json(newTake);
@@ -524,7 +545,7 @@ app.post('/api/takes/:id/dialogue', async (req, res) => {
           if (mediaUrls && mediaUrls.length > 0) {
             textMsg += `\n\n🖼️ <i>Прикреплены изображения: ${mediaUrls.length} шт.</i>`;
           }
-          await notifyTelegram(targetAdmin.tgId, textMsg);
+          await notifyTelegram(targetAdmin.tgId, textMsg, mediaUrls);
         }
       }
     }
@@ -546,7 +567,7 @@ app.post('/api/takes/:id/dialogue', async (req, res) => {
         }
         
         textMsg += `\n🤖 Вы можете ответить на это сообщение прямо здесь в боте!`;
-        await notifyTelegram(take.userTgId, textMsg);
+        await notifyTelegram(take.userTgId, textMsg, mediaUrls);
       }
     }
 

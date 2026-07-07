@@ -4,11 +4,38 @@ import { HttpsProxyAgent } from 'https-proxy-agent';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
+import https from 'https';
 
 dotenv.config();
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const proxy = process.env.TELEGRAM_PROXY; // Optional HTTP / SOCKS proxy
+
+// Helper for downloading files with optional proxy
+function downloadFileWithProxy(urlStr: string): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const url = new URL(urlStr);
+    const options: any = {
+      method: 'GET'
+    };
+    if (proxy) {
+      options.agent = new HttpsProxyAgent(proxy);
+    }
+    
+    const req = https.request(url, options, (res) => {
+      if (res.statusCode !== 200) {
+        reject(new Error(`Failed to download file: status code ${res.statusCode}`));
+        return;
+      }
+      const chunks: any[] = [];
+      res.on('data', (chunk) => chunks.push(chunk));
+      res.on('end', () => resolve(Buffer.concat(chunks)));
+    });
+    
+    req.on('error', (err) => reject(err));
+    req.end();
+  });
+}
 
 export let botInstance: Telegraf | null = null;
 
@@ -24,9 +51,70 @@ export async function sendTelegramNotification(tgId: string, text: string): Prom
   return false;
 }
 
+export async function sendTelegramNotificationWithMedia(tgId: string, text: string, mediaUrls: string[]): Promise<boolean> {
+  if (botInstance) {
+    try {
+      if (mediaUrls && mediaUrls.length > 0) {
+        const mediaGroup: any[] = [];
+        for (let i = 0; i < mediaUrls.length; i++) {
+          const m = mediaUrls[i];
+          let mediaSource: any;
+          
+          if (m.startsWith('/uploads/')) {
+            const localPath = path.join(process.cwd(), m);
+            if (fs.existsSync(localPath)) {
+              mediaSource = { source: fs.createReadStream(localPath) };
+            } else {
+              mediaSource = m;
+            }
+          } else {
+            mediaSource = m;
+          }
+
+          mediaGroup.push({
+            type: 'photo',
+            media: mediaSource,
+            caption: i === 0 ? text : undefined,
+            parse_mode: i === 0 ? 'HTML' : undefined
+          });
+        }
+
+        if (mediaGroup.length > 0) {
+          await botInstance.telegram.sendMediaGroup(tgId, mediaGroup);
+          return true;
+        }
+      }
+      
+      // Fallback if no media items found
+      await botInstance.telegram.sendMessage(tgId, text, { parse_mode: 'HTML' });
+      return true;
+    } catch (err) {
+      console.error(`Error sending message with media via botInstance to ${tgId}:`, err);
+      // Fallback text-only message
+      try {
+        await botInstance.telegram.sendMessage(tgId, text, { parse_mode: 'HTML' });
+        return true;
+      } catch (e) {
+        console.error(`Fallback send text-only also failed to ${tgId}:`, e);
+      }
+    }
+  }
+  return false;
+}
+
 if (!token) {
   console.warn('⚠️ TELEGRAM_BOT_TOKEN is not defined in your environment variables! Telegram bot will be disabled.');
 } else {
+  // Prevent 409 conflict during hot-reloads / restarts by stopping the previous active bot
+  if ((global as any).activeBot) {
+    try {
+      console.log('🛑 Stopping existing Telegram Bot instance to avoid 409 conflict...');
+      (global as any).activeBot.stop();
+    } catch (e) {
+      console.warn('⚠️ Error stopping existing bot:', e);
+    }
+  }
+
   let botOptions: any = {};
   if (proxy) {
     console.log(`📡 Configuring Telegram bot to use proxy: ${proxy}`);
@@ -37,6 +125,7 @@ if (!token) {
 
   const bot = new Telegraf(token, botOptions);
   botInstance = bot;
+  (global as any).activeBot = bot;
 
   // Initialize DB Connection (non-blocking async to avoid top-level await)
   (async () => {
@@ -51,28 +140,25 @@ if (!token) {
 
   // Bot /start handler
   bot.start(async (ctx) => {
-  const startPayload = ctx.payload; // Deep-linked payload: "login_CODE"
-  const user = ctx.from;
+    const startPayload = ctx.payload; // Deep-linked payload: "login_CODE"
+    const user = ctx.from;
 
-  if (startPayload && startPayload.startsWith('login_')) {
-    const code = startPayload.replace('login_', '');
-    console.log(`🔐 Received login attempt with code: ${code} for Telegram user: ${user.id} (${user.username || 'no-username'})`);
-    
-    try {
-      const session = await Storage.getTgSession(code);
-      if (session) {
-        let avatarUrl: string | null = null;
-        try {
-          const photos = await ctx.telegram.getUserProfilePhotos(user.id, 0, 1);
-          if (photos && photos.total_count > 0 && photos.photos[0] && photos.photos[0].length > 0) {
-            const fileId = photos.photos[0][0].file_id;
-            const file = await ctx.telegram.getFile(fileId);
-            if (file && file.file_path) {
-              const downloadUrl = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
-              const response = await fetch(downloadUrl);
-              if (response.ok) {
-                const arrayBuffer = await response.arrayBuffer();
-                const buffer = Buffer.from(arrayBuffer);
+    if (startPayload && startPayload.startsWith('login_')) {
+      const code = startPayload.replace('login_', '');
+      console.log(`🔐 Received login attempt with code: ${code} for Telegram user: ${user.id} (${user.username || 'no-username'})`);
+      
+      try {
+        const session = await Storage.getTgSession(code);
+        if (session) {
+          let avatarUrl: string | null = null;
+          try {
+            const photos = await ctx.telegram.getUserProfilePhotos(user.id, 0, 1);
+            if (photos && photos.total_count > 0 && photos.photos[0] && photos.photos[0].length > 0) {
+              const fileId = photos.photos[0][0].file_id;
+              const file = await ctx.telegram.getFile(fileId);
+              if (file && file.file_path) {
+                const downloadUrl = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+                const buffer = await downloadFileWithProxy(downloadUrl);
                 const uploadsDir = path.join(process.cwd(), 'uploads');
                 if (!fs.existsSync(uploadsDir)) {
                   fs.mkdirSync(uploadsDir, { recursive: true });
@@ -81,29 +167,26 @@ if (!token) {
                 fs.writeFileSync(path.join(uploadsDir, avatarFilename), buffer);
                 avatarUrl = `/uploads/${avatarFilename}`;
                 console.log('✅ Successfully downloaded and saved user avatar locally to:', avatarUrl);
-              } else {
-                console.error('Failed to download user avatar from Telegram, response status:', response.status);
               }
             }
+          } catch (e) {
+            console.error('Failed to fetch user avatar from Telegram:', e);
           }
-        } catch (e) {
-          console.error('Failed to fetch user avatar from Telegram:', e);
-        }
 
-        await Storage.authenticateTgSession(code, String(user.id), user.username || null, user.first_name || null, avatarUrl);
-        await ctx.reply(
-          `<tg-emoji emoji-id="5461151367559141950">🎉</tg-emoji> <b>Вы успешно вошли на платформу в качестве ${user.first_name || 'пользователя'}!</b>\n\n` +
-          `Теперь вернитесь на сайт — вы будете автоматически авторизованы и сможете оставлять тейки/идеи, а также отслеживать ответы.`,
-          { parse_mode: 'HTML' }
-        );
-      } else {
-        await ctx.reply('<tg-emoji emoji-id="5210952531676504517">❌</tg-emoji> <b>Ошибка:</b> Код входа устарел или не существует. Пожалуйста, инициируйте вход на сайте заново.', { parse_mode: 'HTML' });
+          await Storage.authenticateTgSession(code, String(user.id), user.username || null, user.first_name || null, avatarUrl);
+          await ctx.reply(
+            `<tg-emoji emoji-id="5461151367559141950">🎉</tg-emoji> <b>Вы успешно вошли на платформу в качестве ${user.first_name || 'пользователя'}!</b>\n\n` +
+            `Теперь вернитесь на сайт — вы будете автоматически авторизованы и сможете оставлять тейки/идеи, а также отслеживать ответы.`,
+            { parse_mode: 'HTML' }
+          );
+        } else {
+          await ctx.reply('<tg-emoji emoji-id="5210952531676504517">❌</tg-emoji> <b>Ошибка:</b> Код входа устарел или не существует. Пожалуйста, инициируйте вход на сайте заново.', { parse_mode: 'HTML' });
+        }
+      } catch (err: any) {
+        console.error('Error in login auth via bot:', err);
+        await ctx.reply('<tg-emoji emoji-id="5210952531676504517">❌</tg-emoji> Произошла техническая ошибка при авторизации. Попробуйте снова.', { parse_mode: 'HTML' });
       }
-    } catch (err: any) {
-      console.error('Error in login auth via bot:', err);
-      await ctx.reply('<tg-emoji emoji-id="5210952531676504517">❌</tg-emoji> Произошла техническая ошибка при авторизации. Попробуйте снова.', { parse_mode: 'HTML' });
-    }
-  } else {
+    } else {
     await ctx.reply(
       `<tg-emoji emoji-id="5461117441612462242">🙂</tg-emoji> <b>Привет, ${user.first_name || 'пользователь'}! Это официальный бот обратной связи.</b> \n\n` +
       `Здесь вы можете:\n` +
@@ -290,18 +373,11 @@ bot.on('message', async (ctx) => {
           (mediaUrls.length > 0 ? `🖼️ <i>Прикреплены новые файлы (${mediaUrls.length} шт.)</i>\n` : '') +
           `\n🔗 <i>Ответьте через админ-панель на сайте!</i>`;
         
-        // Use standard telegram notifier
-        const token = process.env.TELEGRAM_BOT_TOKEN;
-        const notifyUrl = `https://api.telegram.org/bot${token}/sendMessage`;
-        await fetch(notifyUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: targetAdmin.tgId,
-            text: adminNotification,
-            parse_mode: 'HTML',
-          }),
-        });
+        if (mediaUrls && mediaUrls.length > 0) {
+          await sendTelegramNotificationWithMedia(targetAdmin.tgId, adminNotification, mediaUrls);
+        } else {
+          await bot.telegram.sendMessage(targetAdmin.tgId, adminNotification, { parse_mode: 'HTML' });
+        }
       }
     }
 
