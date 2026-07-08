@@ -25,9 +25,11 @@ app.use('/uploads', express.static(uploadsDir));
 // Serve custom mascot and background images directly from root
 const rootImages = [
   'ВСОЮЗЫ.png',
+  'всоюзынадругой бок.png',
   'заявки.png',
   'списокадминов.png',
   'техподдержка.png',
+  'наstartпоменять.png',
   'mainmenu(info).png',
   'mainmenu(start).PNG',
   'куда_нибудь.png',

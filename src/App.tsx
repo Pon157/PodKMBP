@@ -346,7 +346,7 @@ const StartPage: React.FC = () => {
               className="w-full max-w-[200px] sm:max-w-[240px] xl:max-w-[360px] 2xl:max-w-[460px]"
             >
               <img
-                src="/mainmenu(start).PNG"
+                src="/наstartпоменять.png"
                 alt="Маскот"
                 className="w-full h-auto object-contain drop-shadow-2xl"
                 onError={() => setStartImageFailed(true)}
@@ -818,10 +818,10 @@ const MainInfoPage: React.FC<MainInfoPageProps> = ({ admins, unions }) => {
         {/* TITLE AND SUBTITLE BLOCK */}
         <div className="text-center my-4">
           <h1 className="text-3xl sm:text-4xl md:text-5xl xl:text-7xl font-display font-bold text-white tracking-tight drop-shadow-lg">
-            Podslushano KMBP
+            Podslushano
           </h1>
           <p className="text-xs sm:text-sm md:text-base xl:text-lg text-gummy-light font-semibold uppercase tracking-wider mt-2.5 opacity-90">
-            Подслушано кмбп, сладкие сплетни & горькая правда
+            Подслушано, сладкие сплетни & горькая правда
           </p>
         </div>
 
@@ -1470,6 +1470,7 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
   const [botUsername, setBotUsername] = useState<string>('verifsitepodsl_bot');
   const [authLoading, setAuthLoading] = useState(false);
   const [takeImageFailed, setTakeImageFailed] = useState(false);
+  const [showRulesOverlay, setShowRulesOverlay] = useState(false);
 
   // Math Captcha States
   const [captcha, setCaptcha] = useState<{ captchaId: string; svg: string } | null>(null);
@@ -1674,53 +1675,18 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
     <PageTransition>
       <div className="max-w-5xl xl:max-w-7xl 2xl:max-w-screen-2xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 xl:gap-14 items-center relative transition-all">
         
-        {/* LEFT COLUMN: RULES & MASCOT UNDER THEM (cols 4) */}
-        <div className="md:col-span-4 flex flex-col gap-6 relative">
+        {/* LEFT COLUMN: CLICKABLE MASCOT TO SHOW RULES (cols 4) */}
+        <div className="md:col-span-4 flex flex-col items-center justify-center gap-6 relative">
           
-          {/* Rules Panel */}
-          <div className="bg-wine-dark/40 border-2 border-gummy/20 rounded-2xl p-5 xl:p-6 shadow-lg relative overflow-hidden">
-            <h3 className="font-display font-bold text-white text-xs xl:text-sm border-b border-gummy/20 pb-2 mb-3">
-              Здесь ты можешь анонимно:
-            </h3>
-            <ul className="text-[11px] xl:text-xs text-gummy-light flex flex-col gap-2 font-medium">
-              <li className="flex items-start gap-2">
-                <span className="text-gummy mt-0.5">•</span>
-                <span>рассказать о своих симпатиях</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-gummy mt-0.5">•</span>
-                <span>высказать, что раздражает</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-gummy mt-0.5">•</span>
-                <span>обсудить людей, события, эмоции и ботов</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-gummy mt-0.5">•</span>
-                <span className="font-bold text-white uppercase tracking-wider text-[9px] bg-wine/60 px-1.5 py-0.5 rounded">Без имён</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-gummy mt-0.5">•</span>
-                <span className="font-bold text-white uppercase tracking-wider text-[9px] bg-wine/60 px-1.5 py-0.5 rounded">Без раскрытия личности</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-gummy mt-0.5">•</span>
-                <span>Только честные мысли</span>
-              </li>
-            </ul>
-            <p className="text-[11px] xl:text-xs text-gummy font-bold italic mt-4 border-t border-gummy/10 pt-2 text-center">
-              "Не нам судить — но мы обсудим."
-            </p>
-          </div>
-
           {/* Mascot with glowing purple background */}
-          <div className="flex flex-col items-center gap-3 relative z-0">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 bg-purple-600/45 rounded-full blur-3xl pointer-events-none z-0 animate-pulse duration-[3000ms]" />
+          <div className="flex flex-col items-center gap-4 relative z-0">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 bg-purple-600/40 rounded-full blur-3xl pointer-events-none z-0 animate-pulse duration-[3000ms]" />
             {!takeImageFailed ? (
               <motion.div
                 animate={{ y: [-5, 5, -5] }}
                 transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
-                className="w-full max-w-[150px] sm:max-w-[180px] xl:max-w-[240px] relative z-10"
+                onClick={() => setShowRulesOverlay(true)}
+                className="w-full max-w-[180px] sm:max-w-[220px] xl:max-w-[300px] relative z-10 cursor-pointer hover:scale-105 active:scale-95 transition-all"
               >
                 <img
                   src="/take.png"
@@ -1730,16 +1696,21 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
                 />
               </motion.div>
             ) : (
-              <div className="relative z-10">
-                <MascotPlaceholder pose={tgUser ? "thinking" : "neutral"} size={160} className="xl:scale-120 transition-transform" />
+              <div 
+                className="relative z-10 cursor-pointer hover:scale-105 active:scale-95 transition-all"
+                onClick={() => setShowRulesOverlay(true)}
+              >
+                <MascotPlaceholder pose={tgUser ? "thinking" : "neutral"} size={180} className="xl:scale-130 transition-transform" />
               </div>
             )}
-            <div className="bg-wine-dark/20 border border-gummy/10 rounded-xl px-3 py-2 text-center text-[10px] xl:text-xs text-gummy/60 max-w-xs leading-relaxed">
-              {tgUser 
-                ? "Поделитесь вашей сплетней или честным мнением! Ваша анонимность полностью защищена."
-                : "Для защиты от спама, пожалуйста, войдите через Telegram."
-              }
-            </div>
+            
+            <button
+              type="button"
+              onClick={() => setShowRulesOverlay(true)}
+              className="bg-wine-dark/40 border border-gummy/20 hover:border-gummy hover:bg-wine/60 text-gummy-light hover:text-white rounded-xl px-4 py-2.5 text-center text-xs xl:text-sm max-w-xs leading-relaxed transition-all shadow-md cursor-pointer flex items-center gap-2 font-bold animate-pulse"
+            >
+              Нажми на меня, чтобы увидеть правила 📜
+            </button>
           </div>
 
         </div>
@@ -2008,6 +1979,89 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
         </div>
 
       </div>
+
+      {/* RULES OVERLAY MODAL */}
+      {showRulesOverlay && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-wine-dark border-4 border-gummy rounded-3xl p-6 md:p-8 max-w-xl w-full shadow-2xl relative max-h-[85vh] overflow-y-auto font-sans text-left"
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setShowRulesOverlay(false)}
+              className="absolute top-4 right-4 text-gummy hover:text-white bg-wine/40 hover:bg-wine p-2 rounded-full transition-all cursor-pointer"
+            >
+              <span className="text-xl font-bold font-mono">✕</span>
+            </button>
+
+            {/* Header */}
+            <div className="border-b border-gummy/20 pb-4 mb-5 text-center">
+              <span className="text-[10px] xl:text-xs uppercase tracking-widest font-mono text-gummy/60 font-bold block mb-1">Свод правил</span>
+              <h3 className="font-display font-bold text-white text-xl md:text-2xl">✦ Правила публикации сплетен</h3>
+            </div>
+
+            {/* Content */}
+            <div className="space-y-4 text-xs md:text-sm text-gummy-light leading-relaxed">
+              <p className="flex items-start gap-2">
+                <span className="text-gummy text-base shrink-0 select-none">✦</span>
+                <span><b>Правила публикации сплетен:</b></span>
+              </p>
+              <p className="flex items-start gap-2 pl-2">
+                <span className="text-gummy text-base shrink-0 select-none">୨୧</span>
+                <span>Пишите только реальные истории или ситуации, о которых вам действительно хочется рассказать.</span>
+              </p>
+              <p className="flex items-start gap-2 pl-2">
+                <span className="text-gummy text-base shrink-0 select-none">୨୧</span>
+                <span>Не публикуйте личные данные других людей (номера телефонов, адреса, пароли, документы и т.д.).</span>
+              </p>
+              <p className="flex items-start gap-2 pl-2">
+                <span className="text-gummy text-base shrink-0 select-none">୨୧</span>
+                <span>Запрещены угрозы, призывы к травле, дискриминация и любой контент, нарушающий законодательство.</span>
+              </p>
+              <p className="flex items-start gap-2 pl-2">
+                <span className="text-gummy text-base shrink-0 select-none">୨୧</span>
+                <span>Не присылайте фейковые сплетни ради провокаций или мести.</span>
+              </p>
+              <p className="flex items-start gap-2 pl-2">
+                <span className="text-gummy text-base shrink-0 select-none">୨୧</span>
+                <span>Если рассказываете историю о конкретном человеке, постарайтесь не раскрывать его личность без необходимости.</span>
+              </p>
+              <p className="flex items-start gap-2 pl-2">
+                <span className="text-gummy text-base shrink-0 select-none">୨୧</span>
+                <span>Соблюдайте уважение. Даже если история неприятная — разрешено минимальное количество нецензурной лексики.</span>
+              </p>
+              <p className="flex items-start gap-2 pl-2">
+                <span className="text-gummy text-base shrink-0 select-none">୨୧</span>
+                <span>Администрация оставляет за собой право отклонить, сократить или отредактировать текст для публикации без изменения его смысла.</span>
+              </p>
+              <p className="flex items-start gap-2 pl-2">
+                <span className="text-gummy text-base shrink-0 select-none">୨୧</span>
+                <span>Отправляя сплетню, вы подтверждаете, что несёте ответственность за её содержание.</span>
+              </p>
+              
+              <div className="pt-4 border-t border-gummy/10 text-center text-gummy font-bold italic">
+                <p className="flex items-center justify-center gap-1.5">
+                  <span>♡</span>
+                  <span>Спасибо, что помогаете делать «Подслушано» интересным, безопасным и уютным местом для каждого.</span>
+                </p>
+              </div>
+            </div>
+
+            {/* OK button */}
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={() => setShowRulesOverlay(false)}
+                className="bg-gummy text-wine font-bold text-xs py-3 px-8 rounded-xl hover:bg-white hover:scale-105 active:scale-95 transition-all shadow-md cursor-pointer"
+              >
+                Всё понятно, закрыть!
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </PageTransition>
   );
 };
@@ -2324,12 +2378,12 @@ const MascotPage: React.FC = () => {
     <PageTransition>
       <div className="max-w-5xl xl:max-w-7xl 2xl:max-w-screen-2xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 xl:gap-14 items-center justify-center transition-all relative">
         
-        {/* Mascot on the left, at the boundary */}
-        <div className="md:col-span-4 flex justify-center md:justify-start xl:scale-130 transition-transform md:-ml-12 lg:-ml-20">
+        {/* Mascot on the left, adjusted layout */}
+        <div className="md:col-span-4 flex justify-center md:justify-end xl:scale-130 transition-transform">
           <img 
             src="/ВСОЮЗЫ.png" 
             alt="Мицуки" 
-            className="max-w-[220px] xl:max-w-[280px] h-auto object-contain drop-shadow-2xl" 
+            className="max-w-[280px] xl:max-w-[360px] 2xl:max-w-[420px] h-auto object-contain drop-shadow-2xl" 
             onError={(e) => {
               e.currentTarget.style.display = 'none';
             }}
@@ -2428,12 +2482,12 @@ const UnionsPage: React.FC<UnionsPageProps> = ({ unions: initialUnions }) => {
     <PageTransition>
       <div className="max-w-5xl xl:max-w-7xl 2xl:max-w-screen-2xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 xl:gap-14 items-center justify-center transition-all">
         
-        {/* Left Mascot - В Союзы - positioned at the boundary */}
-        <div className="md:col-span-4 flex justify-center md:justify-start xl:scale-130 transition-transform md:-ml-12 lg:-ml-20">
+        {/* Left Mascot - В Союзы */}
+        <div className="md:col-span-3 flex justify-center md:justify-end xl:scale-130 transition-transform">
           <img 
             src="/ВСОЮЗЫ.png" 
             alt="Маскот В Союзы" 
-            className="max-w-[200px] xl:max-w-[260px] h-auto object-contain drop-shadow-2xl" 
+            className="max-w-[240px] xl:max-w-[320px] h-auto object-contain drop-shadow-2xl" 
             onError={(e) => {
               e.currentTarget.style.display = 'none';
             }}
@@ -2441,10 +2495,10 @@ const UnionsPage: React.FC<UnionsPageProps> = ({ unions: initialUnions }) => {
         </div>
 
         {/* Center content */}
-        <div className="md:col-span-8 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 sm:p-8 md:p-10 xl:p-16 shadow-2xl relative flex flex-col gap-6 transition-all">
+        <div className="md:col-span-6 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 sm:p-8 md:p-10 xl:p-16 shadow-2xl relative flex flex-col gap-6 transition-all">
           <div className="border-b border-gummy/20 pb-3 mb-1 text-center">
             <h2 className="font-display font-bold text-white text-xl md:text-2xl xl:text-4xl">Наши союзы</h2>
-            <p className="text-xs xl:text-sm text-gummy/50 mt-0.5 font-mono">Подслушано КМБП</p>
+            <p className="text-xs xl:text-sm text-gummy/50 mt-0.5 font-mono">Wine Mascot Alliance & Partners</p>
           </div>
 
           <div className="flex flex-col gap-4">
@@ -2477,6 +2531,18 @@ const UnionsPage: React.FC<UnionsPageProps> = ({ unions: initialUnions }) => {
           >
             Вернуться на главную
           </button>
+        </div>
+
+        {/* Right Mascot - В Союзы на другой бок */}
+        <div className="md:col-span-3 flex justify-center md:justify-start xl:scale-130 transition-transform">
+          <img 
+            src="/всоюзынадругой бок.png" 
+            alt="Маскот В Союзы Справа" 
+            className="max-w-[240px] xl:max-w-[320px] h-auto object-contain drop-shadow-2xl" 
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
         </div>
 
       </div>

@@ -407,13 +407,17 @@ bot.on('message', async (ctx) => {
       const targetAdmin = allAdmins.find(a => a.id === targetAdminId);
       
       if (targetAdmin && targetAdmin.tgId) {
+        const baseUrl = process.env.APP_URL || '';
+        const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+        const chatLink = `${cleanBaseUrl}/admin-panel?takeId=${take.id}`;
+        
         const adminNotification = 
           `<tg-emoji emoji-id="5443038326535759644">💬</tg-emoji> <b>СООБЩЕНИЕ ИЗ ТЕЛЕГРАМ-БОТА</b>\n\n` +
           `<b>В чате тейка:</b> <i>"${take.content.substring(0, 30)}..."</i>\n` +
           `<b>Пользователь:</b> ${ctx.from.first_name}\n` +
           `<b>Сообщение:</b> ${textContent}\n` +
           (mediaUrls.length > 0 ? `🖼️ <i>Прикреплены новые файлы (${mediaUrls.length} шт.)</i>\n` : '') +
-          `\n🔗 <i>Ответьте через админ-панель на сайте!</i>`;
+          `\n🔗 <a href="${chatLink}">Ответьте через админ-панель на сайте!</a>`;
         
         if (mediaUrls && mediaUrls.length > 0) {
           await sendTelegramNotificationWithMedia(targetAdmin.tgId, adminNotification, mediaUrls);

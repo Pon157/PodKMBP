@@ -166,6 +166,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   }, [currentAdmin, isOwner]);
 
+  // Deep Link handler for takeId parameter
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const takeId = params.get('takeId');
+    if (takeId && takes.length > 0) {
+      const foundTake = takes.find(t => t.id === takeId);
+      if (foundTake) {
+        setActiveTakeChatId(takeId);
+        if (foundTake.takenBy === currentAdmin.id || foundTake.targetAdminId === currentAdmin.id) {
+          setActiveTab('personal_takes');
+        } else {
+          setActiveTab('general_takes');
+        }
+        // Clean up query param from URL so user can normally navigate tabs
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      }
+    }
+  }, [takes, currentAdmin.id]);
+
   const fetchDbStatus = async () => {
     try {
       const res = await fetch('/api/db-status');
