@@ -2480,25 +2480,30 @@ const UnionsPage: React.FC<UnionsPageProps> = ({ unions: initialUnions }) => {
 
   return (
     <PageTransition>
-      <div className="max-w-5xl xl:max-w-7xl 2xl:max-w-screen-2xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 xl:gap-14 items-center justify-center transition-all">
+      {/* Split Page Gradient Background Cover */}
+      <div 
+        className="absolute inset-0 -z-10 w-full h-full bg-gradient-to-b md:bg-gradient-to-r from-[#4A0518] via-[#5d2258] to-[#7448a6] bg-fixed transition-all duration-500"
+      />
+      
+      <div className="max-w-5xl xl:max-w-7xl 2xl:max-w-screen-2xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 xl:gap-14 items-center justify-center transition-all relative">
         
-        {/* Left Mascot - В Союзы */}
-        <div className="md:col-span-3 flex justify-center md:justify-end xl:scale-130 transition-transform">
+        {/* Left Mascot - В Союзы (Wine Side) */}
+        <div className="md:col-span-3 flex justify-center md:justify-end relative z-20 md:translate-x-12 lg:translate-x-16 xl:translate-x-24 2xl:translate-x-32 transition-all duration-300 xl:scale-125 hover:scale-135 hover:z-30">
           <img 
             src="/ВСОЮЗЫ.png" 
             alt="Маскот В Союзы" 
-            className="max-w-[240px] xl:max-w-[320px] h-auto object-contain drop-shadow-2xl" 
+            className="max-w-[280px] xl:max-w-[380px] 2xl:max-w-[440px] h-auto object-contain drop-shadow-2xl" 
             onError={(e) => {
-              e.currentTarget.style.display = 'none';
+               e.currentTarget.style.display = 'none';
             }}
           />
         </div>
 
         {/* Center content */}
-        <div className="md:col-span-6 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 sm:p-8 md:p-10 xl:p-16 shadow-2xl relative flex flex-col gap-6 transition-all">
+        <div className="md:col-span-6 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 sm:p-8 md:p-10 xl:p-16 shadow-2xl relative flex flex-col gap-6 transition-all z-10">
           <div className="border-b border-gummy/20 pb-3 mb-1 text-center">
             <h2 className="font-display font-bold text-white text-xl md:text-2xl xl:text-4xl">Наши союзы</h2>
-            <p className="text-xs xl:text-sm text-gummy/50 mt-0.5 font-mono">Подслушано, Сладкие сплетни & Горькая правда</p>
+            <p className="text-xs xl:text-sm text-gummy/50 mt-0.5 font-mono">Wine Mascot Alliance & Partners</p>
           </div>
 
           <div className="flex flex-col gap-4">
@@ -2533,12 +2538,12 @@ const UnionsPage: React.FC<UnionsPageProps> = ({ unions: initialUnions }) => {
           </button>
         </div>
 
-        {/* Right Mascot - В Союзы на другой бок */}
-        <div className="md:col-span-3 flex justify-center md:justify-start xl:scale-130 transition-transform">
+        {/* Right Mascot - В Союзы на другой бок (Mauve Side) */}
+        <div className="md:col-span-3 flex justify-center md:justify-start relative z-20 md:-translate-x-12 lg:-translate-x-16 xl:-translate-x-24 2xl:-translate-x-32 transition-all duration-300 xl:scale-125 hover:scale-135 hover:z-30">
           <img 
             src="/всоюзынадругой бок.png" 
             alt="Маскот В Союзы Справа" 
-            className="max-w-[240px] xl:max-w-[320px] h-auto object-contain drop-shadow-2xl" 
+            className="max-w-[280px] xl:max-w-[380px] 2xl:max-w-[440px] h-auto object-contain drop-shadow-2xl" 
             onError={(e) => {
               e.currentTarget.style.display = 'none';
             }}

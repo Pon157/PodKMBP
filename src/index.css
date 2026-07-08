@@ -42,3 +42,30 @@ body {
 .animate-float-fast {
   animation: float 4s ease-in-out infinite;
 }
+
+/* Custom Styled Scrollbars matching Wine/Gummy Theme */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #4A0518; /* --color-wine-dark */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #6A0D28; /* --color-wine */
+  border: 2px solid #4A0518;
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #FBAFD5; /* --color-gummy */
+}
+
+/* Standard scrollbar for Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #6A0D28 #4A0518;
+}
+
