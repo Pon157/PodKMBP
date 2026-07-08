@@ -2503,7 +2503,7 @@ const UnionsPage: React.FC<UnionsPageProps> = ({ unions: initialUnions }) => {
         <div className="md:col-span-6 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 sm:p-8 md:p-10 xl:p-16 shadow-2xl relative flex flex-col gap-6 transition-all z-10">
           <div className="border-b border-gummy/20 pb-3 mb-1 text-center">
             <h2 className="font-display font-bold text-white text-xl md:text-2xl xl:text-4xl">Наши союзы</h2>
-            <p className="text-xs xl:text-sm text-gummy/50 mt-0.5 font-mono">Wine Mascot Alliance & Partners</p>
+            <p className="text-xs xl:text-sm text-gummy/50 mt-0.5 font-mono">Подслушано, Сладкие сплетни & Горькая правда</p>
           </div>
 
           <div className="flex flex-col gap-4">
