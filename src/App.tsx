@@ -1209,10 +1209,10 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
 
         {/* Admins Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {admins.length === 0 ? (
+          {admins.filter(adm => !adm.isInRest).length === 0 ? (
             <p className="text-sm text-gummy/50 col-span-full text-center py-12">Команда настраивается...</p>
           ) : (
-            admins.map((adm) => (
+            admins.filter(adm => !adm.isInRest).map((adm) => (
               <div key={adm.id} className="bg-wine-dark/40 border-2 border-gummy/30 rounded-2xl p-5 xl:p-8 flex flex-col items-center text-center gap-4 shadow-lg hover:border-gummy transition-all relative group">
                 <div className="absolute top-3 right-3 bg-wine-dark/80 px-2.5 py-0.5 rounded-full border border-gummy/20 text-[10px] xl:text-xs font-mono text-gummy">
                   {adm.role}
@@ -1889,7 +1889,7 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
                   className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white text-xs outline-none focus:border-gummy cursor-pointer"
                 >
                   <option value="all">Всем администраторам (кто первый возьмет)</option>
-                  {admins.map((adm) => (
+                  {admins.filter(adm => !adm.isInRest).map((adm) => (
                     <option key={adm.id} value={adm.id}>
                       Лично админу: {adm.nickname} ({adm.role})
                     </option>

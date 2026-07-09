@@ -123,6 +123,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [hobbies, setHobbies] = useState(currentAdmin.hobbies);
   const [tgId, setTgId] = useState(currentAdmin.tgId);
   const [password, setPassword] = useState('');
+  const [isInRest, setIsInRest] = useState(currentAdmin.isInRest || false);
   
   const [photosList, setPhotosList] = useState<string[]>(() => parseProfileUrls(currentAdmin.photoUrl));
   const [musicList, setMusicList] = useState<string[]>(() => parseProfileUrls(currentAdmin.musicUrl));
@@ -136,6 +137,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setTgId(currentAdmin.tgId);
     setPhotosList(parseProfileUrls(currentAdmin.photoUrl));
     setMusicList(parseProfileUrls(currentAdmin.musicUrl));
+    setIsInRest(currentAdmin.isInRest || false);
   }, [currentAdmin]);
   
   // New Admin Form State (Owner only)
@@ -354,6 +356,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           photoUrl: JSON.stringify(photosList),
           musicUrl: JSON.stringify(musicList),
           tgId,
+          isInRest,
           password: password || undefined,
         }),
       });
@@ -926,6 +929,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       ))}
                     </div>
                   )}
+
+                  <div className="flex items-center gap-3 bg-wine/30 border border-gummy/20 rounded-xl p-4 mt-2">
+                    <input
+                      id="profile-isinrest"
+                      type="checkbox"
+                      checked={isInRest}
+                      onChange={(e) => setIsInRest(e.target.checked)}
+                      className="w-5 h-5 rounded border-gummy/30 text-gummy focus:ring-gummy bg-wine cursor-pointer accent-gummy"
+                    />
+                    <label htmlFor="profile-isinrest" className="text-xs sm:text-sm font-semibold text-white cursor-pointer select-none">
+                      Режим отпуска (скрыть из списка доступных на сайте)
+                    </label>
+                  </div>
 
                   <button
                     id="save-profile-btn"

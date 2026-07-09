@@ -1,4 +1,4 @@
-import { pgTable, text, integer, timestamp, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, timestamp, jsonb, boolean } from 'drizzle-orm/pg-core';
 
 // 1. Admins Table
 export const admins = pgTable('admins', {
@@ -12,6 +12,7 @@ export const admins = pgTable('admins', {
   photoUrl: text('photo_url').notNull().default(''),
   musicUrl: text('music_url').notNull().default(''),
   tgId: text('tg_id').notNull().default(''),
+  isInRest: boolean('is_in_rest').notNull().default(false),
 });
 
 // 2. Takes (Takes and Ideas) Table

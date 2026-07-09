@@ -9,6 +9,7 @@ export interface Admin {
   photoUrl: string;
   musicUrl: string; // URL to audio/song or name
   tgId: string; // telegram user id for bot alerts
+  isInRest?: boolean;
 }
 
 export interface Take {

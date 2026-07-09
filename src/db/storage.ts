@@ -19,7 +19,8 @@ export const defaultAdmins = [
     hobbies: 'Управление, Рисование, Чайные церемонии',
     photoUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=200',
     musicUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-    tgId: '12345678'
+    tgId: '12345678',
+    isInRest: false
   },
   {
     id: 'kibo',
@@ -31,7 +32,8 @@ export const defaultAdmins = [
     hobbies: 'Рисование, Кодинг, Видеоигры, Эмбиент',
     photoUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200',
     musicUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-    tgId: '98765432'
+    tgId: '98765432',
+    isInRest: false
   }
 ];
 
@@ -132,9 +134,13 @@ export const Storage = {
               hobbies TEXT NOT NULL DEFAULT '',
               photo_url TEXT NOT NULL DEFAULT '',
               music_url TEXT NOT NULL DEFAULT '',
-              tg_id TEXT NOT NULL DEFAULT ''
+              tg_id TEXT NOT NULL DEFAULT '',
+              is_in_rest BOOLEAN NOT NULL DEFAULT FALSE
             );
           `);
+
+          // Add newer columns to admins if missing
+          await client.query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS is_in_rest BOOLEAN NOT NULL DEFAULT FALSE;`);
 
           // 2. Create takes table
           await client.query(`

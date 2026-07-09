@@ -337,7 +337,7 @@ app.post('/api/admins', async (req, res) => {
 app.put('/api/admins/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { nickname, role, aboutMe, hobbies, photoUrl, musicUrl, tgId, password } = req.body;
+    const { nickname, role, aboutMe, hobbies, photoUrl, musicUrl, tgId, password, isInRest } = req.body;
 
     const admin = await Storage.getAdminById(id);
     if (!admin) {
@@ -352,6 +352,7 @@ app.put('/api/admins/:id', async (req, res) => {
     if (photoUrl !== undefined) updateFields.photoUrl = photoUrl;
     if (musicUrl !== undefined) updateFields.musicUrl = musicUrl;
     if (tgId !== undefined) updateFields.tgId = tgId;
+    if (isInRest !== undefined) updateFields.isInRest = isInRest;
     if (password !== undefined && password !== '') updateFields.password = password;
 
     const updatedAdmin = await Storage.updateAdmin(id, updateFields);
