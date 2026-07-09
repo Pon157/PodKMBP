@@ -227,7 +227,7 @@ const GlobalDecorations: React.FC<GlobalDecorationsProps> = ({ tgUser, onLogoutT
     <>
       {/* Telegram Profile Widget */}
       {tgUser && (
-        <div className="fixed top-4 left-4 z-50 group">
+        <div className="fixed bottom-4 left-4 md:top-4 md:bottom-auto z-50 group">
           {/* Container */}
           <div className="flex items-center gap-3 bg-wine-dark/95 hover:bg-wine-dark border border-gummy/40 rounded-full py-1.5 pl-1.5 pr-4 shadow-xl transition-all duration-300 cursor-pointer backdrop-blur-md">
             
@@ -259,7 +259,7 @@ const GlobalDecorations: React.FC<GlobalDecorationsProps> = ({ tgUser, onLogoutT
           </div>
 
           {/* Hover Info Panel / Tooltip */}
-          <div className="absolute top-full left-0 mt-2 w-64 bg-wine-dark/95 border-2 border-gummy rounded-2xl p-4 shadow-2xl opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto transition-all duration-200 origin-top-left z-[100] backdrop-blur-md">
+          <div className="absolute bottom-full md:bottom-auto md:top-full left-0 mb-2 md:mb-0 md:mt-2 w-64 bg-wine-dark/95 border-2 border-gummy rounded-2xl p-4 shadow-2xl opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto transition-all duration-200 origin-bottom-left md:origin-top-left z-[100] backdrop-blur-md">
             <div className="flex items-center gap-3 mb-3 border-b border-gummy/20 pb-3">
               <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gummy bg-wine flex items-center justify-center text-sm font-bold text-gummy">
                 {tgUser.avatarUrl ? (
@@ -532,7 +532,7 @@ const SupportPage: React.FC<SupportPageProps> = ({ tgUser }) => {
               className="w-full max-w-[200px] sm:max-w-[240px] xl:max-w-[320px] 2xl:max-w-[380px] relative z-10"
             >
               <img
-                src="/техподдержка.png"
+                src="/Тех поддержка.png"
                 alt="Маскот Поддержка"
                 className="w-full h-auto object-contain drop-shadow-2xl bg-transparent"
                 onError={() => setSupportImageFailed(true)}
@@ -1019,7 +1019,14 @@ const PricePage: React.FC<PricePageProps> = ({ prices: initialPrices }) => {
  
          {/* Mascot bottom-right */}
          <div className="self-end mr-4 md:mr-16 xl:scale-150 transition-transform origin-right">
-           <MascotPlaceholder pose="pointing-left" size={180} />
+            <img 
+              src="/Прайс.png" 
+              alt="Маскот Прайс" 
+              className="max-w-[180px] h-auto object-contain drop-shadow-2xl" 
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
          </div>
 
       </div>
@@ -1160,6 +1167,7 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
   const navigate = useNavigate();
   const [selectedAdmin, setSelectedAdmin] = useState<Admin | null>(null);
   const [selectedAdminPhotoIdx, setSelectedAdminPhotoIdx] = useState<number>(0);
+  const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
   const [admins, setAdmins] = useState<Admin[]>(initialAdmins);
 
   const handleSelectAdmin = (admin: Admin | null) => {
@@ -1236,7 +1244,7 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
         {/* Mascot on the bottom-left corner */}
         <div className="self-start ml-8 mt-4 xl:scale-150 transition-transform origin-left">
           <img 
-            src="/списокадминов.png" 
+            src="/в администрацию.png" 
             alt="Маскот Список админов" 
             className="max-w-[140px] h-auto object-contain drop-shadow-2xl" 
             onError={(e) => {
@@ -1266,8 +1274,16 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
                       return (
                         <div className="flex flex-col gap-3">
                           {/* Main Showcase Image */}
-                          <div className="relative aspect-video w-full rounded-2xl overflow-hidden border-4 border-gummy bg-wine/20 shadow-inner flex items-center justify-center">
-                            <img src={activePhoto} alt={selectedAdmin.nickname} className="w-full h-full object-cover" />
+                          <div 
+                            onClick={() => setFullscreenPhoto(activePhoto)}
+                            className="relative aspect-video w-full rounded-2xl overflow-hidden border-4 border-gummy bg-wine/20 shadow-inner flex items-center justify-center cursor-zoom-in group/photo"
+                          >
+                            <img src={activePhoto} alt={selectedAdmin.nickname} className="w-full h-full object-cover transition-transform duration-300 group-hover/photo:scale-105" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center">
+                              <span className="text-white text-xs bg-black/60 px-3 py-1.5 rounded-full border border-gummy/30 flex items-center gap-1.5 font-medium">
+                                <Plus size={12} className="rotate-45" /> На весь экран
+                              </span>
+                            </div>
                             <div className="absolute top-2 left-2 bg-black/70 px-2.5 py-1 rounded-md text-[10px] xl:text-xs font-mono text-gummy border border-gummy/20">
                               Фото {selectedAdminPhotoIdx + 1} из {Math.max(1, photos.length)}
                             </div>
@@ -1361,6 +1377,38 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
                 </div>
               </motion.div>
             </div>
+          )}
+        </AnimatePresence>
+
+        {/* FULLSCREEN PHOTO VIEW LIGHTBOX */}
+        <AnimatePresence>
+          {fullscreenPhoto && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setFullscreenPhoto(null)}
+              className="fixed inset-0 bg-black/95 backdrop-blur-md z-[60] flex items-center justify-center p-4 cursor-zoom-out"
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFullscreenPhoto(null);
+                }}
+                className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full transition-all cursor-pointer border border-white/15 z-50"
+              >
+                <Plus size={20} className="rotate-45" />
+              </button>
+              <motion.img
+                initial={{ scale: 0.95 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.95 }}
+                src={fullscreenPhoto}
+                alt="Просмотр во весь экран"
+                className="max-w-full max-h-[90vh] rounded-xl object-contain shadow-2xl border-2 border-gummy/20"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </motion.div>
           )}
         </AnimatePresence>
 
@@ -1689,7 +1737,7 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
                 className="w-full max-w-[180px] sm:max-w-[220px] xl:max-w-[300px] relative z-10 cursor-pointer hover:scale-105 active:scale-95 transition-all"
               >
                 <img
-                  src="/take.png"
+                  src="/В тейки.png"
                   alt="Маскот Тейк"
                   className="w-full h-auto object-contain drop-shadow-2xl bg-transparent"
                   onError={() => setTakeImageFailed(true)}
@@ -2488,7 +2536,7 @@ const UnionsPage: React.FC<UnionsPageProps> = ({ unions: initialUnions }) => {
       <div className="max-w-5xl xl:max-w-7xl 2xl:max-w-screen-2xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 xl:gap-14 items-center justify-center transition-all relative">
         
         {/* Left Mascot - В Союзы (Wine Side) */}
-        <div className="md:col-span-3 flex justify-center md:justify-end relative z-20 md:translate-x-12 lg:translate-x-16 xl:translate-x-24 2xl:translate-x-32 transition-all duration-300 xl:scale-125 hover:scale-135 hover:z-30">
+        <div className="md:col-span-3 flex justify-center md:justify-end relative z-20 md:translate-x-16 lg:translate-x-24 xl:translate-x-32 2xl:translate-x-40 transition-all duration-300 xl:scale-125 hover:scale-135 hover:z-30">
           <img 
             src="/ВСОЮЗЫ.png" 
             alt="Маскот В Союзы" 
@@ -2503,7 +2551,7 @@ const UnionsPage: React.FC<UnionsPageProps> = ({ unions: initialUnions }) => {
         <div className="md:col-span-6 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 sm:p-8 md:p-10 xl:p-16 shadow-2xl relative flex flex-col gap-6 transition-all z-10">
           <div className="border-b border-gummy/20 pb-3 mb-1 text-center">
             <h2 className="font-display font-bold text-white text-xl md:text-2xl xl:text-4xl">Наши союзы</h2>
-            <p className="text-xs xl:text-sm text-gummy/50 mt-0.5 font-mono">Подслушано, Сладкие сплетни & Горькая правда</p>
+            <p className="text-xs xl:text-sm text-gummy/50 mt-0.5 font-mono">Wine Mascot Alliance & Partners</p>
           </div>
 
           <div className="flex flex-col gap-4">
@@ -2539,9 +2587,9 @@ const UnionsPage: React.FC<UnionsPageProps> = ({ unions: initialUnions }) => {
         </div>
 
         {/* Right Mascot - В Союзы на другой бок (Mauve Side) */}
-        <div className="md:col-span-3 flex justify-center md:justify-start relative z-20 md:-translate-x-12 lg:-translate-x-16 xl:-translate-x-24 2xl:-translate-x-32 transition-all duration-300 xl:scale-125 hover:scale-135 hover:z-30">
+        <div className="md:col-span-3 flex justify-center md:justify-start relative z-20 md:-translate-x-16 lg:-translate-x-24 xl:-translate-x-32 2xl:-translate-x-40 transition-all duration-300 xl:scale-125 hover:scale-135 hover:z-30">
           <img 
-            src="/всоюзынадругой бок.png" 
+            src="/в союзах поменять.png" 
             alt="Маскот В Союзы Справа" 
             className="max-w-[280px] xl:max-w-[380px] 2xl:max-w-[440px] h-auto object-contain drop-shadow-2xl" 
             onError={(e) => {

@@ -45,27 +45,28 @@ body {
 
 /* Custom Styled Scrollbars matching Wine/Gummy Theme */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
   background: #4A0518; /* --color-wine-dark */
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #6A0D28; /* --color-wine */
+  background: #FBAFD5; /* --color-gummy */
   border: 2px solid #4A0518;
-  border-radius: 8px;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #FBAFD5; /* --color-gummy */
+  background: #FFD4EA; /* --color-gummy-light */
 }
 
 /* Standard scrollbar for Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #6A0D28 #4A0518;
+  scrollbar-color: #FBAFD5 #4A0518;
 }
 

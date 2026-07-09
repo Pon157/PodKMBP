@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { 
   Users, UserCheck, MessageSquare, FileText, Settings, LogOut, 
   Plus, Edit2, Trash2, Send, CornerDownRight, Check, AlertCircle, ShieldAlert,
-  Clock, CheckCircle2, Lightbulb, AlertTriangle
+  Clock, CheckCircle2, Lightbulb, AlertTriangle, Image, Music
 } from 'lucide-react';
 import { MusicPlayer } from './MusicPlayer';
 
@@ -755,12 +755,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                               input.value = '';
                             }
                           }}
-                          className="bg-gummy hover:bg-white text-wine font-bold px-4 py-2 rounded-xl transition-all text-xs"
+                          className="bg-gummy hover:bg-white text-wine font-bold px-4 py-2 rounded-xl transition-all text-xs flex items-center gap-1"
                         >
-                          Добавить ➕
+                          <Plus size={12} /> Добавить
                         </button>
-                        <label className="bg-wine border border-gummy/30 hover:border-gummy text-gummy font-bold px-4 py-2 rounded-xl cursor-pointer transition-all text-xs flex items-center justify-center">
-                          Загрузить 🖼️
+                        <label className="bg-wine border border-gummy/30 hover:border-gummy text-gummy font-bold px-4 py-2 rounded-xl cursor-pointer transition-all text-xs flex items-center justify-center gap-1">
+                          <Image size={12} /> Загрузить
                           <input
                             type="file"
                             accept="image/*"
@@ -835,12 +835,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                               input.value = '';
                             }
                           }}
-                          className="bg-gummy hover:bg-white text-wine font-bold px-4 py-2 rounded-xl transition-all text-xs"
+                          className="bg-gummy hover:bg-white text-wine font-bold px-4 py-2 rounded-xl transition-all text-xs flex items-center gap-1"
                         >
-                          Добавить ➕
+                          <Plus size={12} /> Добавить
                         </button>
-                        <label className="bg-wine border border-gummy/30 hover:border-gummy text-gummy font-bold px-4 py-2 rounded-xl cursor-pointer transition-all text-xs flex items-center justify-center">
-                          Загрузить 🎵
+                        <label className="bg-wine border border-gummy/30 hover:border-gummy text-gummy font-bold px-4 py-2 rounded-xl cursor-pointer transition-all text-xs flex items-center justify-center gap-1">
+                          <Music size={12} /> Загрузить
                           <input
                             type="file"
                             accept="audio/*"
@@ -871,7 +871,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         {musicList.map((url, idx) => (
                           <div key={idx} className="flex justify-between items-center bg-wine/40 border border-gummy/20 rounded-xl px-3 py-2 text-xs text-white">
                             <span className="flex items-center gap-1.5 font-medium truncate flex-1 pr-3">
-                              🎵 <span className="truncate">{url.substring(url.lastIndexOf('/') + 1) || url}</span>
+                              <Music size={12} className="text-gummy" /> <span className="truncate">{url.substring(url.lastIndexOf('/') + 1) || url}</span>
                             </span>
                             <div className="flex items-center gap-2">
                               <span className="text-[10px] text-gummy/50 font-mono">#{idx + 1}</span>
@@ -980,7 +980,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                                   return (
                                     <a key={idx} href={url} target="_blank" rel="noreferrer" className="relative group border border-gummy/20 rounded-lg overflow-hidden w-20 h-20 flex items-center justify-center bg-wine/30 hover:border-gummy transition-all" title="Нажмите, чтобы открыть">
                                       {isAudio ? (
-                                        <span className="text-xl">🎵</span>
+                                        <Music size={24} className="text-gummy" />
                                       ) : (
                                         <img src={url} alt={`Прикрепленный файл ${idx + 1}`} className="w-full h-full object-cover" />
                                       )}
@@ -1067,9 +1067,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                               }`}
                             >
                               <div className="flex justify-between items-center w-full">
-                                <span className={`text-[10px] uppercase font-mono font-bold ${isActive ? 'text-wine/80' : 'text-gummy-light'}`}>
-                                  {take.type === 'take' ? 'Тейк' : 'Идея'}
-                                </span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`text-[10px] uppercase font-mono font-bold ${isActive ? 'text-wine/80' : 'text-gummy-light'}`}>
+                                    {take.type === 'take' ? 'Тейк' : 'Идея'}
+                                  </span>
+                                  {take.status !== 'resolved' && (!lastMsg || (lastMsg && lastMsg.sender === 'user')) && (
+                                    <span className="relative flex h-2 w-2">
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+                                      <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
+                                    </span>
+                                  )}
+                                </div>
                                 <span className={`text-[9px] font-mono ${isActive ? 'text-wine/60' : 'text-gummy/50'}`}>
                                   {new Date(take.createdAt).toLocaleDateString()}
                                 </span>
@@ -1131,8 +1139,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                               {mediaUrls.map((url, idx) => {
                                 const isAudio = url.match(/\.(mp3|wav|ogg|m4a)$/i) || url.includes('audio');
                                 return (
-                                  <a key={idx} href={url} target="_blank" rel="noreferrer" className="text-xs text-gummy hover:underline flex items-center gap-1 bg-wine/30 border border-gummy/20 px-2.5 py-1.5 rounded-lg transition-all hover:border-gummy">
-                                    {isAudio ? '🎵 Музыка' : '🖼️ Фото'} #{idx + 1}
+                                  <a key={idx} href={url} target="_blank" rel="noreferrer" className="text-xs text-gummy hover:underline flex items-center gap-1.5 bg-wine/30 border border-gummy/20 px-2.5 py-1.5 rounded-lg transition-all hover:border-gummy">
+                                    {isAudio ? <Music size={12} /> : <Image size={12} />}
+                                    <span>{isAudio ? 'Музыка' : 'Фото'} #{idx + 1}</span>
                                   </a>
                                 );
                               })}
@@ -1604,11 +1613,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                               }`}
                             >
                               <div className="flex justify-between items-center w-full">
-                                <span className={`text-[9px] uppercase font-mono font-bold px-1.5 py-0.5 rounded ${
-                                  isActive ? 'bg-wine-dark/20 text-wine' : 'bg-wine-dark/40 border border-gummy/20 text-white'
-                                }`}>
-                                  {take.type === 'support_idea' ? 'Идея' : 'Жалоба'}
-                                </span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`text-[9px] uppercase font-mono font-bold px-1.5 py-0.5 rounded ${
+                                    isActive ? 'bg-wine-dark/20 text-wine' : 'bg-wine-dark/40 border border-gummy/20 text-white'
+                                  }`}>
+                                    {take.type === 'support_idea' ? 'Идея' : 'Жалоба'}
+                                  </span>
+                                  {take.status !== 'resolved' && (!lastMsg || (lastMsg && lastMsg.sender === 'user')) && (
+                                    <span className="relative flex h-2 w-2">
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+                                      <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
+                                    </span>
+                                  )}
+                                </div>
                                 <span className={`text-[9px] font-mono ${isActive ? 'text-wine/60' : 'text-gummy/50'}`}>
                                   {new Date(take.createdAt).toLocaleDateString()}
                                 </span>
@@ -1694,8 +1711,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                               {mediaUrls.map((url, idx) => {
                                 const isAudio = url.match(/\.(mp3|wav|ogg|m4a)$/i) || url.includes('audio');
                                 return (
-                                  <a key={idx} href={url} target="_blank" rel="noreferrer" className="text-xs text-gummy hover:underline flex items-center gap-1 bg-wine/30 border border-gummy/20 px-2.5 py-1.5 rounded-lg transition-all hover:border-gummy">
-                                    {isAudio ? '🎵 Музыка' : '🖼️ Фото'} #{idx + 1}
+                                  <a key={idx} href={url} target="_blank" rel="noreferrer" className="text-xs text-gummy hover:underline flex items-center gap-1.5 bg-wine/30 border border-gummy/20 px-2.5 py-1.5 rounded-lg transition-all hover:border-gummy">
+                                    {isAudio ? <Music size={12} /> : <Image size={12} />}
+                                    <span>{isAudio ? 'Музыка' : 'Фото'} #{idx + 1}</span>
                                   </a>
                                 );
                               })}

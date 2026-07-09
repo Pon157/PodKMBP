@@ -444,12 +444,16 @@ app.post('/api/takes', async (req, res) => {
     }
 
     if (targetTgId) {
+      const baseUrl = process.env.APP_URL || '';
+      const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+      const chatLink = `${cleanBaseUrl}/admin-panel?takeId=${newTake.id}`;
+
       const text = `<b>🆕 ПОЛУЧЕН НОВЫЙ ТЕЙК!</b>\n\n` +
         `<b>Тип:</b> ${typeLabel}\n` +
         `<b>Адресат:</b> ${targetName}\n` +
         `<b>Содержание:</b>\n<i>${content}</i>\n` +
         (imageUrl ? `\n🖼️ <i>Прикреплено изображение</i>` : '') +
-        `\n\n🔗 <i>Откройте панель администрирования для ответа!</i>`;
+        `\n\n🔗 <a href="${chatLink}">Ответьте через админ-панель на сайте!</a>`;
       
       let mediaUrls: string[] = [];
       if (imageUrl) {
