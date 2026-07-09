@@ -2706,11 +2706,6 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onLogin }) => {
           </button>
         </form>
 
-        <div className="mt-8 pt-4 border-t border-gummy/10 text-center text-[10px] text-gummy/40 font-mono leading-relaxed">
-          <p>По умолчанию созданы аккаунты:</p>
-          <p className="mt-1">Владелец: <span className="text-gummy/60 font-bold">owner</span> / <span className="text-gummy/60 font-bold">owner123</span></p>
-          <p>Админ: <span className="text-gummy/60 font-bold">kibo</span> / <span className="text-gummy/60 font-bold">kibo123</span></p>
-        </div>
       </div>
     </PageTransition>
   );
