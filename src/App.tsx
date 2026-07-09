@@ -1209,13 +1209,20 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
 
         {/* Admins Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {admins.filter(adm => !adm.isInRest).length === 0 ? (
+          {admins.length === 0 ? (
             <p className="text-sm text-gummy/50 col-span-full text-center py-12">Команда настраивается...</p>
           ) : (
-            admins.filter(adm => !adm.isInRest).map((adm) => (
+            admins.map((adm) => (
               <div key={adm.id} className="bg-wine-dark/40 border-2 border-gummy/30 rounded-2xl p-5 xl:p-8 flex flex-col items-center text-center gap-4 shadow-lg hover:border-gummy transition-all relative group">
-                <div className="absolute top-3 right-3 bg-wine-dark/80 px-2.5 py-0.5 rounded-full border border-gummy/20 text-[10px] xl:text-xs font-mono text-gummy">
-                  {adm.role}
+                <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                  {adm.isInRest && (
+                    <span className="bg-red-500/90 px-2 py-0.5 rounded-full border border-red-400/20 text-[9px] xl:text-[10px] font-bold text-white uppercase tracking-wider">
+                      В отпуске
+                    </span>
+                  )}
+                  <div className="bg-wine-dark/80 px-2.5 py-0.5 rounded-full border border-gummy/20 text-[10px] xl:text-xs font-mono text-gummy">
+                    {adm.role}
+                  </div>
                 </div>
 
                 <img
@@ -1242,13 +1249,13 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
         </div>
 
         {/* Mascot on the bottom-left corner */}
-        <div className="self-start ml-8 mt-4 xl:scale-150 transition-transform origin-left">
+        <div className="flex justify-center sm:justify-start sm:ml-8 mt-4 xl:scale-150 transition-transform origin-left">
           <img 
-            src="/в администрацию.png" 
+            src={encodeURI("/в администрацию.png")} 
             alt="Маскот Список админов" 
             className="max-w-[140px] h-auto object-contain drop-shadow-2xl" 
             onError={(e) => {
-              e.currentTarget.style.display = 'none';
+              console.error("Mascot failed to load on mobile/desktop", e);
             }}
           />
         </div>
@@ -1353,16 +1360,22 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
                     );
                   })()}
 
-                  <div className="flex gap-3 mt-4">
+                   <div className="flex gap-3 mt-4">
                     <button
                       id="modal-write-take-btn"
+                      disabled={selectedAdmin.isInRest}
                       onClick={() => {
+                        if (selectedAdmin.isInRest) return;
                         setSelectedAdmin(null);
                         navigate('/take', { state: { selectedAdminId: selectedAdmin.id } });
                       }}
-                      className="flex-1 bg-gummy text-wine font-bold text-xs xl:text-base py-3 xl:py-4 rounded-xl hover:bg-white transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer"
+                      className={`flex-1 font-bold text-xs xl:text-base py-3 xl:py-4 rounded-xl transition-all text-center flex items-center justify-center gap-1.5 ${
+                        selectedAdmin.isInRest
+                          ? 'bg-wine/40 border border-gummy/10 text-gummy/30 cursor-not-allowed opacity-50'
+                          : 'bg-gummy text-wine hover:bg-white cursor-pointer'
+                      }`}
                     >
-                      <MessageSquare size={14} /> Написать тейк
+                      <MessageSquare size={14} /> {selectedAdmin.isInRest ? 'В отпуске' : 'Написать тейк'}
                     </button>
                     
                     <button
@@ -1889,9 +1902,9 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
                   className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white text-xs outline-none focus:border-gummy cursor-pointer"
                 >
                   <option value="all">Всем администраторам (кто первый возьмет)</option>
-                  {admins.filter(adm => !adm.isInRest).map((adm) => (
-                    <option key={adm.id} value={adm.id}>
-                      Лично админу: {adm.nickname} ({adm.role})
+                  {admins.map((adm) => (
+                    <option key={adm.id} value={adm.id} disabled={adm.isInRest}>
+                      Лично админу: {adm.nickname} ({adm.role}){adm.isInRest ? ' (В отпуске)' : ''}
                     </option>
                   ))}
                 </select>
