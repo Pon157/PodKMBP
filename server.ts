@@ -26,6 +26,11 @@ app.use('/uploads', express.static(uploadsDir));
 const rootImages = [
   'ВСОЮЗЫ.png',
   'всоюзынадругой бок.png',
+  'в союзах поменять.png',
+  'авасайта.jpg',
+  'в администрацию.png',
+  'Прайс.png',
+  'Тех поддержка.png',
   'заявки.png',
   'списокадминов.png',
   'техподдержка.png',

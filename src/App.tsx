@@ -905,12 +905,12 @@ P.S. Возможно, именно твой секрет станет след�
           </div>
         </div>
 
-        {/* BOTTOM UNIONS BLOCK: Союз Memory Base */}
+        {/* BOTTOM UNIONS BLOCK: Обманули? Заскамили? Столкнулись с недобросовестным человеком? Тогда тебе к нам. */}
         <div className="bg-wine-dark/60 border-2 border-gummy/40 rounded-2xl p-6 xl:p-10 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4 xl:gap-8 transition-all">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
               <Shield className="text-gummy" size={20} />
-              <h3 className="font-display font-bold text-white text-lg xl:text-2xl 2xl:text-3xl">Союз Memory Base</h3>
+              <h3 className="font-display font-bold text-white text-lg xl:text-2xl 2xl:text-3xl">Обманули? Заскамили? Столкнулись с недобросовестным человеком? Тогда тебе к нам.</h3>
             </div>
             <p className="text-xs xl:text-sm 2xl:text-lg text-gummy/80 leading-relaxed">
               Крупнейшее дружественное сообщество в КМБП по борьбе с мошенничеством. 
@@ -2538,7 +2538,7 @@ const UnionsPage: React.FC<UnionsPageProps> = ({ unions: initialUnions }) => {
         {/* Left Mascot - В Союзы (Wine Side) */}
         <div className="md:col-span-3 flex justify-center md:justify-end relative z-20 md:translate-x-16 lg:translate-x-24 xl:translate-x-32 2xl:translate-x-40 transition-all duration-300 xl:scale-125 hover:scale-135 hover:z-30">
           <img 
-            src="/ВСОЮЗЫ.png" 
+            src="/в союзах поменять.png" 
             alt="Маскот В Союзы" 
             className="max-w-[280px] xl:max-w-[380px] 2xl:max-w-[440px] h-auto object-contain drop-shadow-2xl" 
             onError={(e) => {
@@ -2551,7 +2551,7 @@ const UnionsPage: React.FC<UnionsPageProps> = ({ unions: initialUnions }) => {
         <div className="md:col-span-6 bg-wine-dark/50 border-4 border-gummy rounded-3xl p-6 sm:p-8 md:p-10 xl:p-16 shadow-2xl relative flex flex-col gap-6 transition-all z-10">
           <div className="border-b border-gummy/20 pb-3 mb-1 text-center">
             <h2 className="font-display font-bold text-white text-xl md:text-2xl xl:text-4xl">Наши союзы</h2>
-            <p className="text-xs xl:text-sm text-gummy/50 mt-0.5 font-mono">Wine Mascot Alliance & Partners</p>
+            <p className="text-xs xl:text-sm text-gummy/50 mt-0.5 font-mono">Подслушано КМБП, сладкие сплетни & горькая правда</p>
           </div>
 
           <div className="flex flex-col gap-4">
@@ -2589,7 +2589,7 @@ const UnionsPage: React.FC<UnionsPageProps> = ({ unions: initialUnions }) => {
         {/* Right Mascot - В Союзы на другой бок (Mauve Side) */}
         <div className="md:col-span-3 flex justify-center md:justify-start relative z-20 md:-translate-x-16 lg:-translate-x-24 xl:-translate-x-32 2xl:-translate-x-40 transition-all duration-300 xl:scale-125 hover:scale-135 hover:z-30">
           <img 
-            src="/в союзах поменять.png" 
+            src="/всоюзынадругой бок.png" 
             alt="Маскот В Союзы Справа" 
             className="max-w-[280px] xl:max-w-[380px] 2xl:max-w-[440px] h-auto object-contain drop-shadow-2xl" 
             onError={(e) => {
