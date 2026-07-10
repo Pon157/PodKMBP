@@ -30,7 +30,6 @@ const rootImages = [
   'авасайта.jpg',
   'в администрацию.png',
   'Прайс.png',
-  'В тейки.png',
   'Тех поддержка.png',
   'заявки.png',
   'списокадминов.png',
@@ -40,7 +39,9 @@ const rootImages = [
   'mainmenu(start).PNG',
   'куда_нибудь.png',
   'горизонтально_под_кнопками.png',
-  'take.png'
+  'take.png',
+  'В тейки.png',
+  'сменить в info.png'
 ];
 app.get('/:imgName', (req, res, next) => {
   const { imgName } = req.params;
