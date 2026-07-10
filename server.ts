@@ -46,8 +46,13 @@ const rootImages = [
 app.get('/:imgName', (req, res, next) => {
   const { imgName } = req.params;
   try {
-    const decodedName = decodeURIComponent(imgName);
-    const found = rootImages.find(img => img.toLowerCase() === decodedName.toLowerCase());
+    const decodedName = decodeURIComponent(imgName).normalize('NFC').toLowerCase();
+    const found = rootImages.find(img => {
+      const normImgNFC = img.normalize('NFC').toLowerCase();
+      const normImgNFD = img.normalize('NFD').toLowerCase();
+      const decodedNFD = decodeURIComponent(imgName).normalize('NFD').toLowerCase();
+      return normImgNFC === decodedName || normImgNFD === decodedName || normImgNFC === decodedNFD || normImgNFD === decodedNFD;
+    });
     if (found) {
       return res.sendFile(path.join(process.cwd(), found));
     }
