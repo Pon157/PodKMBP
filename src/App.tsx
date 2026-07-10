@@ -12,7 +12,7 @@ import {
   Sparkles, ExternalLink, MessageSquare, AlertCircle, 
   ChevronRight, Heart, Send, Check, Shield, HelpCircle, 
   MapPin, Eye, Play, Plus, BookOpen, Volume2, Globe, Trash2, Lock, ShieldAlert,
-  Lightbulb, AlertTriangle
+  Lightbulb, AlertTriangle, Bot, Paperclip, Scroll, Image, Music
 } from 'lucide-react';
 
 // Safe profile urls parser supporting JSON arrays, comma-separated, or single urls
@@ -291,7 +291,7 @@ const GlobalDecorations: React.FC<GlobalDecorationsProps> = ({ tgUser, onLogoutT
             </div>
 
             <div className="flex flex-col gap-1.5 text-[10px] text-gummy/80 leading-relaxed mb-3">
-              <p>🤖 Вы авторизованы через Telegram и можете отправлять тейки и идеи.</p>
+              <p className="flex items-center gap-1"><Bot size={13} className="text-gummy shrink-0" /> Вы авторизованы через Telegram и можете отправлять тейки и идеи.</p>
             </div>
 
             <button
@@ -657,7 +657,7 @@ const SupportPage: React.FC<SupportPageProps> = ({ tgUser }) => {
                 <label className="text-[10px] uppercase font-bold text-gummy/70">Скриншоты или медиа файлы (до 5 штук)</label>
                 <div className="flex flex-col gap-3">
                   <label className="border-2 border-dashed border-gummy/30 hover:border-gummy/70 rounded-xl p-4 flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:bg-wine-dark/20 transition-all text-center">
-                    <span className="text-xs text-gummy font-semibold">📎 Нажмите или перетащите файлы</span>
+                    <span className="text-xs text-gummy font-semibold flex items-center gap-1"><Paperclip size={14} className="text-gummy" /> Нажмите или перетащите файлы</span>
                     <span className="text-[9px] text-gummy/50 font-mono">JPG, PNG, GIF до 10MB</span>
                     <input
                       id="support-file-picker"
@@ -866,22 +866,21 @@ P.S. Возможно, именно твой секрет станет след�
           {/* Standing mascot / relocated photo on the right (span 2 cols - resized bigger) */}
           <div className="md:col-span-2 flex flex-col items-center gap-4 z-10">
             <div className="xl:scale-140 2xl:scale-160 transition-transform origin-center">
-              {!aboutImageFailed ? (
-                <motion.div
-                  animate={{ y: [-5, 5, -5] }}
-                  transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
-                  className="w-full max-w-[220px] xl:max-w-[280px]"
-                >
-                  <img
-                    src={encodeURI("/сменить в info.png")}
-                    alt="О нас фото"
-                    className="w-full h-auto object-contain drop-shadow-2xl"
-                    onError={() => setAboutImageFailed(true)}
-                  />
-                </motion.div>
-              ) : (
-                <MascotPlaceholder pose="neutral" size={240} />
-              )}
+              <motion.div
+                animate={{ y: [-5, 5, -5] }}
+                transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+                className="w-full max-w-[220px] xl:max-w-[280px]"
+              >
+                <img
+                  src="/сменить в info.png"
+                  alt="О нас фото"
+                  className="w-full h-auto object-contain drop-shadow-2xl"
+                  onError={(e) => {
+                    console.log("Failed to load /сменить в info.png, falling back to placeholder");
+                    e.currentTarget.src = "/mainmenu(info).png";
+                  }}
+                />
+              </motion.div>
             </div>
 
             {/* Speech Bubble pointing to the mascot */}
@@ -1750,10 +1749,13 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
                 className="w-full max-w-[180px] sm:max-w-[220px] xl:max-w-[300px] relative z-10 cursor-pointer hover:scale-105 active:scale-95 transition-all"
               >
                 <img
-                  src={encodeURI("/В тейки.png")}
+                  src="/В тейки.png"
                   alt="Маскот Тейк"
                   className="w-full h-auto object-contain drop-shadow-2xl bg-transparent"
-                  onError={() => setTakeImageFailed(true)}
+                  onError={(e) => {
+                    console.log("Failed to load /В тейки.png, falling back to /take.png");
+                    e.currentTarget.src = "/take.png";
+                  }}
                 />
               </motion.div>
             ) : (
@@ -1770,7 +1772,7 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
               onClick={() => setShowRulesOverlay(true)}
               className="bg-wine-dark/40 border border-gummy/20 hover:border-gummy hover:bg-wine/60 text-gummy-light hover:text-white rounded-xl px-4 py-2.5 text-center text-xs xl:text-sm max-w-xs leading-relaxed transition-all shadow-md cursor-pointer flex items-center gap-2 font-bold animate-pulse"
             >
-              Нажми на меня, чтобы увидеть правила 📜
+              Нажми на меня, чтобы увидеть правила <Scroll size={14} className="text-gummy shrink-0" />
             </button>
           </div>
 
@@ -1842,7 +1844,7 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
                     rel="noreferrer"
                     className="w-full bg-gummy hover:bg-white text-wine font-bold text-sm py-3 rounded-xl transition-all shadow flex items-center justify-center gap-1.5"
                   >
-                    🚀 Запустить бота в Telegram
+                    <Send size={14} className="text-wine animate-bounce shrink-0" /> Запустить бота в Telegram
                   </a>
 
                   <div className="flex items-center gap-2.5 mt-1 text-gummy/60">
@@ -1934,7 +1936,7 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
                     Загружено: {mediaList.length} / 10 файлов
                   </div>
                   <label className="bg-gummy hover:bg-white text-wine font-bold px-4 py-2.5 rounded-xl cursor-pointer transition-all text-xs flex items-center justify-center shrink-0">
-                    Выбрать файл 🖼️
+                    Выбрать файл <Image size={13} className="ml-1 text-wine shrink-0" />
                     <input
                       type="file"
                       multiple
@@ -1976,7 +1978,7 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
                       return (
                         <div key={index} className="relative group aspect-square bg-wine border border-gummy/20 rounded-xl overflow-hidden flex flex-col items-center justify-center p-2">
                           {isAudio ? (
-                            <span className="text-2xl">🎵</span>
+                            <Music size={28} className="text-gummy shrink-0" />
                           ) : (
                             <img src={url} alt="Загружено" className="w-full h-full object-cover rounded-lg" />
                           )}
