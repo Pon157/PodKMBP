@@ -458,6 +458,9 @@ const SupportPage: React.FC<SupportPageProps> = ({ tgUser }) => {
     try {
       for (let i = 0; i < e.target.files.length; i++) {
         const file = e.target.files[i];
+        if (file.size > 50 * 1024 * 1024) {
+          throw new Error(`Файл "${file.name}" превышает 50МБ.`);
+        }
         const url = await handleFileUpload(file);
         urls.push(url);
       }
@@ -1965,8 +1968,8 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
                         setErrorMsg('Идет загрузка файлов...');
                         for (let i = 0; i < files.length; i++) {
                           const file = files[i];
-                          if (file.size > 5 * 1024 * 1024) {
-                            setErrorMsg(`Файл "${file.name}" превышает 5МБ.`);
+                          if (file.size > 50 * 1024 * 1024) {
+                            setErrorMsg(`Файл "${file.name}" превышает 50МБ.`);
                             continue;
                           }
                           try {
