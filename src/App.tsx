@@ -1224,11 +1224,17 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
                   </div>
                 </div>
 
-                <img
-                  src={parseProfileUrls(adm.photoUrl)[0] || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'}
-                  alt={adm.nickname}
-                  className="w-24 h-24 xl:w-32 xl:h-32 rounded-full object-cover border-4 border-gummy shadow-md group-hover:scale-105 transition-all mt-2"
-                />
+                {parseProfileUrls(adm.photoUrl)[0] ? (
+                  <img
+                    src={parseProfileUrls(adm.photoUrl)[0]}
+                    alt={adm.nickname}
+                    className="w-24 h-24 xl:w-32 xl:h-32 rounded-full object-cover border-4 border-gummy shadow-md group-hover:scale-105 transition-all mt-2"
+                  />
+                ) : (
+                  <div className="w-24 h-24 xl:w-32 xl:h-32 rounded-full border-4 border-gummy bg-wine-dark/60 shadow-md flex items-center justify-center text-gummy font-display font-bold text-xl xl:text-3xl mt-2 group-hover:scale-105 transition-all select-none">
+                    {adm.nickname ? adm.nickname.slice(0, 2).toUpperCase() : '?'}
+                  </div>
+                )}
 
                 <div>
                   <h3 className="font-display font-bold text-white text-lg xl:text-2xl">{adm.nickname}</h3>
@@ -1262,12 +1268,12 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
         {/* FULL ADMIN INFO DETAILED MODAL */}
         <AnimatePresence>
           {selectedAdmin && (
-            <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
               <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-wine-dark border-4 border-gummy rounded-3xl p-6 md:p-10 xl:p-14 max-w-lg xl:max-w-2xl w-full shadow-2xl relative overflow-hidden transition-all"
+                className="bg-wine-dark border-4 border-gummy rounded-3xl p-6 md:p-10 xl:p-14 max-w-lg xl:max-w-2xl w-full shadow-2xl relative max-h-[90vh] overflow-y-auto transition-all"
               >
                 {/* Cloud decor in top right of modal */}
                 <AnimatedCloud className="absolute -top-6 -right-6 opacity-30 pointer-events-none" size={100} />
@@ -1276,24 +1282,33 @@ const AdminsOverviewPage: React.FC<AdminsOverviewPageProps> = ({ admins: initial
                   <div className="flex flex-col gap-4">
                     {(() => {
                       const photos = parseProfileUrls(selectedAdmin.photoUrl);
-                      const activePhoto = photos[selectedAdminPhotoIdx] || photos[0] || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200';
+                      const activePhoto = photos[selectedAdminPhotoIdx] || photos[0];
                       return (
                         <div className="flex flex-col gap-3">
                           {/* Main Showcase Image */}
-                          <div 
-                            onClick={() => setFullscreenPhoto(activePhoto)}
-                            className="relative aspect-video w-full rounded-2xl overflow-hidden border-4 border-gummy bg-wine/20 shadow-inner flex items-center justify-center cursor-zoom-in group/photo"
-                          >
-                            <img src={activePhoto} alt={selectedAdmin.nickname} className="w-full h-full object-cover transition-transform duration-300 group-hover/photo:scale-105" />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center">
-                              <span className="text-white text-xs bg-black/60 px-3 py-1.5 rounded-full border border-gummy/30 flex items-center gap-1.5 font-medium">
-                                <Plus size={12} className="rotate-45" /> На весь экран
-                              </span>
+                          {activePhoto ? (
+                            <div 
+                              onClick={() => setFullscreenPhoto(activePhoto)}
+                              className="relative aspect-video w-full rounded-2xl overflow-hidden border-4 border-gummy bg-wine/20 shadow-inner flex items-center justify-center cursor-zoom-in group/photo"
+                            >
+                              <img src={activePhoto} alt={selectedAdmin.nickname} className="w-full h-full object-cover transition-transform duration-300 group-hover/photo:scale-105" />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center">
+                                <span className="text-white text-xs bg-black/60 px-3 py-1.5 rounded-full border border-gummy/30 flex items-center gap-1.5 font-medium">
+                                  <Plus size={12} className="rotate-45" /> На весь экран
+                                </span>
+                              </div>
+                              <div className="absolute top-2 left-2 bg-black/70 px-2.5 py-1 rounded-md text-[10px] xl:text-xs font-mono text-gummy border border-gummy/20">
+                                Фото {selectedAdminPhotoIdx + 1} из {Math.max(1, photos.length)}
+                              </div>
                             </div>
-                            <div className="absolute top-2 left-2 bg-black/70 px-2.5 py-1 rounded-md text-[10px] xl:text-xs font-mono text-gummy border border-gummy/20">
-                              Фото {selectedAdminPhotoIdx + 1} из {Math.max(1, photos.length)}
+                          ) : (
+                            <div className="relative aspect-video w-full rounded-2xl border-4 border-gummy bg-wine-dark/60 shadow-inner flex flex-col items-center justify-center py-8 select-none">
+                              <div className="w-20 h-20 rounded-full border-4 border-gummy bg-wine/60 flex items-center justify-center text-gummy font-display font-bold text-3xl">
+                                {selectedAdmin.nickname ? selectedAdmin.nickname.slice(0, 2).toUpperCase() : '?'}
+                              </div>
+                              <span className="text-xs text-gummy/50 mt-3 font-mono">Фотографии отсутствуют</span>
                             </div>
-                          </div>
+                          )}
                           
                           {/* Gallery Thumbnails */}
                           {photos.length > 1 && (
