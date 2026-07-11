@@ -663,7 +663,6 @@ const SupportPage: React.FC<SupportPageProps> = ({ tgUser }) => {
                       id="support-file-picker"
                       type="file"
                       multiple
-                      accept="image/*,audio/*"
                       onChange={handleFileChange}
                       className="hidden"
                     />
@@ -1955,7 +1954,6 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
                     <input
                       type="file"
                       multiple
-                      accept="image/*,audio/*,video/*"
                       onChange={async (e) => {
                         const files = e.target.files;
                         if (!files || files.length === 0) return;
