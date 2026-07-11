@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { 
   Users, UserCheck, MessageSquare, FileText, Settings, LogOut, 
   Plus, Edit2, Trash2, Send, CornerDownRight, Check, AlertCircle, ShieldAlert,
-  Clock, CheckCircle2, Lightbulb, AlertTriangle, Image, Music
+  Clock, CheckCircle2, Lightbulb, AlertTriangle, Image, Music, Download
 } from 'lucide-react';
 import { MusicPlayer } from './MusicPlayer';
 
@@ -99,6 +99,21 @@ export function parseMediaUrls(imageUrl: string | null | undefined): string[] {
     // fallback
   }
   return [imageUrl.trim()].filter(Boolean);
+}
+
+export function downloadAllAttachments(urls: string[]): void {
+  if (!urls || urls.length === 0) return;
+  urls.forEach((url, idx) => {
+    const a = document.createElement('a');
+    a.href = url;
+    // Get filename or use index fallback
+    const filename = url.substring(url.lastIndexOf('/') + 1) || `attachment-${idx + 1}`;
+    a.setAttribute('download', filename);
+    a.setAttribute('target', '_blank');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  });
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({
@@ -990,20 +1005,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                             const mediaUrls = parseMediaUrls(take.imageUrl);
                             if (mediaUrls.length === 0) return null;
                             return (
-                              <div className="flex flex-wrap gap-2 mt-3">
-                                {mediaUrls.map((url, idx) => {
-                                  const isAudio = url.match(/\.(mp3|wav|ogg|m4a)$/i) || url.includes('audio');
-                                  return (
-                                    <a key={idx} href={url} target="_blank" rel="noreferrer" className="relative group border border-gummy/20 rounded-lg overflow-hidden w-20 h-20 flex items-center justify-center bg-wine/30 hover:border-gummy transition-all" title="Нажмите, чтобы открыть">
-                                      {isAudio ? (
-                                        <Music size={24} className="text-gummy" />
-                                      ) : (
-                                        <img src={url} alt={`Прикрепленный файл ${idx + 1}`} className="w-full h-full object-cover" />
-                                      )}
-                                      <span className="absolute bottom-0.5 right-0.5 bg-black/75 px-1 py-0.2 rounded text-[8px] text-white font-mono">#{idx + 1}</span>
-                                    </a>
-                                  );
-                                })}
+                              <div className="flex flex-col gap-2 mt-3">
+                                <div className="flex flex-wrap gap-2">
+                                  {mediaUrls.map((url, idx) => {
+                                    const isAudio = url.match(/\.(mp3|wav|ogg|m4a)$/i) || url.includes('audio');
+                                    return (
+                                      <a key={idx} href={url} target="_blank" rel="noreferrer" className="relative group border border-gummy/20 rounded-lg overflow-hidden w-20 h-20 flex items-center justify-center bg-wine/30 hover:border-gummy transition-all" title="Нажмите, чтобы открыть">
+                                        {isAudio ? (
+                                          <Music size={24} className="text-gummy" />
+                                        ) : (
+                                          <img src={url} alt={`Прикрепленный файл ${idx + 1}`} className="w-full h-full object-cover" />
+                                        )}
+                                        <span className="absolute bottom-0.5 right-0.5 bg-black/75 px-1 py-0.2 rounded text-[8px] text-white font-mono">#{idx + 1}</span>
+                                      </a>
+                                    );
+                                  })}
+                                </div>
+                                <button
+                                  onClick={() => downloadAllAttachments(mediaUrls)}
+                                  className="self-start text-[11px] font-bold text-wine bg-gummy hover:bg-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer shadow-sm mt-1"
+                                >
+                                  <Download size={12} /> Скачать все вложения ({mediaUrls.length})
+                                </button>
                               </div>
                             );
                           })()}
@@ -1151,16 +1174,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           const mediaUrls = parseMediaUrls(activeChatTake.imageUrl);
                           if (mediaUrls.length === 0) return null;
                           return (
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {mediaUrls.map((url, idx) => {
-                                const isAudio = url.match(/\.(mp3|wav|ogg|m4a)$/i) || url.includes('audio');
-                                return (
-                                  <a key={idx} href={url} target="_blank" rel="noreferrer" className="text-xs text-gummy hover:underline flex items-center gap-1.5 bg-wine/30 border border-gummy/20 px-2.5 py-1.5 rounded-lg transition-all hover:border-gummy">
-                                    {isAudio ? <Music size={12} /> : <Image size={12} />}
-                                    <span>{isAudio ? 'Музыка' : 'Фото'} #{idx + 1}</span>
-                                  </a>
-                                );
-                              })}
+                            <div className="flex flex-col gap-2 mt-2">
+                              <div className="flex flex-wrap gap-2">
+                                {mediaUrls.map((url, idx) => {
+                                  const isAudio = url.match(/\.(mp3|wav|ogg|m4a)$/i) || url.includes('audio');
+                                  return (
+                                    <a key={idx} href={url} target="_blank" rel="noreferrer" className="text-xs text-gummy hover:underline flex items-center gap-1.5 bg-wine/30 border border-gummy/20 px-2.5 py-1.5 rounded-lg transition-all hover:border-gummy">
+                                      {isAudio ? <Music size={12} /> : <Image size={12} />}
+                                      <span>{isAudio ? 'Музыка' : 'Фото'} #{idx + 1}</span>
+                                    </a>
+                                  );
+                                })}
+                              </div>
+                              <button
+                                onClick={() => downloadAllAttachments(mediaUrls)}
+                                className="self-start text-[10px] font-bold text-wine bg-gummy hover:bg-white px-2.5 py-1 rounded-md flex items-center gap-1 transition-all cursor-pointer mt-1"
+                              >
+                                <Download size={10} /> Скачать все вложения ({mediaUrls.length})
+                              </button>
                             </div>
                           );
                         })()}
@@ -1723,16 +1754,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           const mediaUrls = parseMediaUrls(activeChatTake.imageUrl);
                           if (mediaUrls.length === 0) return null;
                           return (
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {mediaUrls.map((url, idx) => {
-                                const isAudio = url.match(/\.(mp3|wav|ogg|m4a)$/i) || url.includes('audio');
-                                return (
-                                  <a key={idx} href={url} target="_blank" rel="noreferrer" className="text-xs text-gummy hover:underline flex items-center gap-1.5 bg-wine/30 border border-gummy/20 px-2.5 py-1.5 rounded-lg transition-all hover:border-gummy">
-                                    {isAudio ? <Music size={12} /> : <Image size={12} />}
-                                    <span>{isAudio ? 'Музыка' : 'Фото'} #{idx + 1}</span>
-                                  </a>
-                                );
-                              })}
+                            <div className="flex flex-col gap-2 mt-2">
+                              <div className="flex flex-wrap gap-2">
+                                {mediaUrls.map((url, idx) => {
+                                  const isAudio = url.match(/\.(mp3|wav|ogg|m4a)$/i) || url.includes('audio');
+                                  return (
+                                    <a key={idx} href={url} target="_blank" rel="noreferrer" className="text-xs text-gummy hover:underline flex items-center gap-1.5 bg-wine/30 border border-gummy/20 px-2.5 py-1.5 rounded-lg transition-all hover:border-gummy">
+                                      {isAudio ? <Music size={12} /> : <Image size={12} />}
+                                      <span>{isAudio ? 'Музыка' : 'Фото'} #{idx + 1}</span>
+                                    </a>
+                                  );
+                                })}
+                              </div>
+                              <button
+                                onClick={() => downloadAllAttachments(mediaUrls)}
+                                className="self-start text-[10px] font-bold text-wine bg-gummy hover:bg-white px-2.5 py-1 rounded-md flex items-center gap-1 transition-all cursor-pointer mt-1"
+                              >
+                                <Download size={10} /> Скачать все вложения ({mediaUrls.length})
+                              </button>
                             </div>
                           );
                         })()}
