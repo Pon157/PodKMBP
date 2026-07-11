@@ -63,7 +63,8 @@ app.get('/:imgName', (req, res, next) => {
 });
 
 // Middleware
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 // Active Users State
 const activeUsers = new Map<string, number>();
