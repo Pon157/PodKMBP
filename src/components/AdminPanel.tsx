@@ -3,7 +3,8 @@ import { motion } from 'motion/react';
 import { 
   Users, UserCheck, MessageSquare, FileText, Settings, LogOut, 
   Plus, Edit2, Trash2, Send, CornerDownRight, Check, AlertCircle, ShieldAlert,
-  Clock, CheckCircle2, Lightbulb, AlertTriangle, Image, Music, Download, Play
+  Clock, CheckCircle2, Lightbulb, AlertTriangle, Image, Music, Download, Play,
+  Eye, EyeOff
 } from 'lucide-react';
 import { MusicPlayer } from './MusicPlayer';
 
@@ -250,9 +251,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   // New Admin Form State (Owner only)
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [newNickname, setNewNickname] = useState('');
   const [newRole, setNewRole] = useState('');
   const [newTgId, setNewTgId] = useState('');
+  const [showProfilePassword, setShowProfilePassword] = useState(false);
   
   // Active chat state
   const [activeTakeChatId, setActiveTakeChatId] = useState<string | null>(null);
@@ -1010,14 +1013,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-semibold uppercase text-gummy/70">Изменить пароль (оставьте пустым для сохранения)</label>
-                      <input
-                        id="profile-password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white focus:border-gummy outline-none transition-all text-sm"
-                        placeholder="Новый сложный пароль"
-                      />
+                      <div className="relative">
+                        <input
+                          id="profile-password"
+                          type={showProfilePassword ? "text" : "password"}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="w-full bg-wine border-2 border-gummy/20 rounded-xl pl-4 pr-10 py-2.5 text-white focus:border-gummy outline-none transition-all text-sm"
+                          placeholder="Новый сложный пароль"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowProfilePassword(!showProfilePassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gummy/50 hover:text-gummy transition-colors focus:outline-none"
+                          title={showProfilePassword ? "Скрыть пароль" : "Показать пароль"}
+                        >
+                          {showProfilePassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -1444,15 +1457,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
                     <div className="flex flex-col gap-1">
                       <label className="text-[10px] uppercase font-bold text-gummy/70">Пароль *</label>
-                      <input
-                        id="new-admin-password"
-                        type="text"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="Прочный пароль"
-                        className="bg-wine border-2 border-gummy/20 rounded-xl px-3 py-2 text-white outline-none focus:border-gummy text-xs"
-                        required
-                      />
+                      <div className="relative">
+                        <input
+                          id="new-admin-password"
+                          type={showNewPassword ? "text" : "password"}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Прочный пароль"
+                          className="w-full bg-wine border-2 border-gummy/20 rounded-xl pl-3 pr-10 py-2 text-white outline-none focus:border-gummy text-xs"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gummy/50 hover:text-gummy transition-colors focus:outline-none"
+                          title={showNewPassword ? "Скрыть пароль" : "Показать пароль"}
+                        >
+                          {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
                     </div>
 
                     <div className="flex flex-col gap-1">
