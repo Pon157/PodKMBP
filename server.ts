@@ -22,24 +22,7 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // Multer storage configuration
-const multerStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    let originalName = file.originalname;
-    try {
-      // Decode the original name from latin1 to utf8 to support Cyrillic characters correctly
-      originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
-    } catch (e) {
-      // Fallback
-    }
-    const cleanFilename = originalName.replace(/[^a-zA-Z0-9а-яА-ЯёЁ.\-_]/g, '_');
-    const ext = path.extname(cleanFilename);
-    const base = path.basename(cleanFilename, ext);
-    cb(null, `${base}_${Date.now()}${ext}`);
-  }
-});
+const multerStorage = multer.memoryStorage();
 
 const upload = multer({
   storage: multerStorage,
@@ -285,14 +268,21 @@ async function uploadToS3(fileBuffer: Buffer, filename: string, mimeType: string
   });
 
   const key = `uploads/${Date.now()}_${filename}`;
-  const command = new PutObjectCommand({
+  const commandArgs = {
     Bucket: bucket,
     Key: key,
     Body: fileBuffer,
     ContentType: mimeType,
-  });
+  };
 
-  await s3.send(command);
+  try {
+    const command = new PutObjectCommand({ ...commandArgs, ACL: 'public-read' });
+    await s3.send(command);
+  } catch (err: any) {
+    console.warn('Failed to upload to S3 with public-read ACL, retrying without ACL:', err.message);
+    const command = new PutObjectCommand(commandArgs);
+    await s3.send(command);
+  }
 
   if (process.env.S3_PUBLIC_URL) {
     const base = process.env.S3_PUBLIC_URL.replace(/\/$/, '');
@@ -310,26 +300,35 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 
     // If a binary file was uploaded via multipart/form-data
     if (req.file) {
+      let originalName = req.file.originalname;
+      try {
+        // Decode the original name from latin1 to utf8 to support Cyrillic characters correctly
+        originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+      } catch (e) {
+        // Fallback
+      }
+      const cleanFilename = originalName.replace(/[^a-zA-Z0-9а-яА-ЯёЁ.\-_]/g, '_');
+      const ext = path.extname(cleanFilename);
+      const base = path.basename(cleanFilename, ext);
+      const uniqueFilename = `${base}_${Date.now()}${ext}`;
+      const mimeType = req.file.mimetype || 'application/octet-stream';
+
       if (isS3Configured) {
         try {
-          const fileBuffer = await fs.promises.readFile(req.file.path);
-          const mimeType = req.file.mimetype || 'application/octet-stream';
-          const s3Url = await uploadToS3(fileBuffer, req.file.filename, mimeType);
-          
-          // Delete local file to save disk space
-          await fs.promises.unlink(req.file.path).catch(err => 
-            console.error('Failed to delete local temp file:', err)
-          );
-          
+          const s3Url = await uploadToS3(req.file.buffer, uniqueFilename, mimeType);
           return res.json({ url: s3Url });
         } catch (s3Err: any) {
           console.error('S3 upload failed, falling back to local storage:', s3Err);
-          // Fallback: don't delete local, return local URL
-          const fileUrl = `/uploads/${req.file.filename}`;
+          // Fallback to local storage
+          const filePath = path.join(uploadsDir, uniqueFilename);
+          await fs.promises.writeFile(filePath, req.file.buffer);
+          const fileUrl = `/uploads/${uniqueFilename}`;
           return res.json({ url: fileUrl });
         }
       } else {
-        const fileUrl = `/uploads/${req.file.filename}`;
+        const filePath = path.join(uploadsDir, uniqueFilename);
+        await fs.promises.writeFile(filePath, req.file.buffer);
+        const fileUrl = `/uploads/${uniqueFilename}`;
         return res.json({ url: fileUrl });
       }
     }
