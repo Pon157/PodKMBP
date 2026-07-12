@@ -37,9 +37,37 @@ function downloadFileWithProxy(urlStr: string): Promise<Buffer> {
   });
 }
 
+function getMimeType(filename: string, defaultMime: string = 'application/octet-stream'): string {
+  const ext = path.extname(filename).toLowerCase();
+  const mimeMap: Record<string, string> = {
+    '.mp4': 'video/mp4',
+    '.mov': 'video/quicktime',
+    '.webm': 'video/webm',
+    '.avi': 'video/x-msvideo',
+    '.mkv': 'video/x-matroska',
+    '.mp3': 'audio/mpeg',
+    '.wav': 'audio/wav',
+    '.ogg': 'audio/ogg',
+    '.m4a': 'audio/mp4',
+    '.aac': 'audio/aac',
+    '.flac': 'audio/flac',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.bmp': 'image/bmp',
+    '.svg': 'image/svg+xml',
+    '.pdf': 'application/pdf',
+    '.txt': 'text/plain',
+  };
+  return mimeMap[ext] || defaultMime;
+}
+
 // Upload file to S3 if active, or fallback to local disk
 async function saveMedia(buffer: Buffer, filename: string, mimeType: string): Promise<string> {
   const isS3Configured = !!(process.env.S3_ACCESS_KEY_ID && process.env.S3_SECRET_ACCESS_KEY && process.env.S3_BUCKET_NAME);
+  const resolvedMimeType = getMimeType(filename, mimeType);
   if (isS3Configured) {
     try {
       const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
@@ -64,7 +92,7 @@ async function saveMedia(buffer: Buffer, filename: string, mimeType: string): Pr
         Bucket: bucket,
         Key: key,
         Body: buffer,
-        ContentType: mimeType,
+        ContentType: resolvedMimeType,
       });
 
       await s3.send(command);
@@ -268,14 +296,9 @@ if (!token) {
               if (file && file.file_path) {
                 const downloadUrl = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
                 const buffer = await downloadFileWithProxy(downloadUrl);
-                const uploadsDir = path.join(process.cwd(), 'uploads');
-                if (!fs.existsSync(uploadsDir)) {
-                  fs.mkdirSync(uploadsDir, { recursive: true });
-                }
                 const avatarFilename = `avatar_${user.id}_${Date.now()}.jpg`;
-                fs.writeFileSync(path.join(uploadsDir, avatarFilename), buffer);
-                avatarUrl = `/uploads/${avatarFilename}`;
-                console.log('✅ Successfully downloaded and saved user avatar locally to:', avatarUrl);
+                avatarUrl = await saveMedia(buffer, avatarFilename, 'image/jpeg');
+                console.log('✅ Successfully downloaded and saved user avatar to:', avatarUrl);
               }
             }
           } catch (e) {
