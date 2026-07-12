@@ -293,6 +293,33 @@ async function uploadToS3(fileBuffer: Buffer, filename: string, mimeType: string
   return `${cleanEndpoint}/${bucket}/${key}`;
 }
 
+function getMimeType(filename: string, defaultMime: string = 'application/octet-stream'): string {
+  const ext = path.extname(filename).toLowerCase();
+  const mimeMap: Record<string, string> = {
+    '.mp4': 'video/mp4',
+    '.mov': 'video/quicktime',
+    '.webm': 'video/webm',
+    '.avi': 'video/x-msvideo',
+    '.mkv': 'video/x-matroska',
+    '.mp3': 'audio/mpeg',
+    '.wav': 'audio/wav',
+    '.ogg': 'audio/ogg',
+    '.m4a': 'audio/mp4',
+    '.aac': 'audio/aac',
+    '.flac': 'audio/flac',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.bmp': 'image/bmp',
+    '.svg': 'image/svg+xml',
+    '.pdf': 'application/pdf',
+    '.txt': 'text/plain',
+  };
+  return mimeMap[ext] || defaultMime;
+}
+
 // File Upload
 app.post('/api/upload', upload.single('file'), async (req, res) => {
   try {
@@ -300,18 +327,26 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 
     // If a binary file was uploaded via multipart/form-data
     if (req.file) {
+      const rawExt = path.extname(req.file.originalname) || '.bin';
       let originalName = req.file.originalname;
       try {
-        // Decode the original name from latin1 to utf8 to support Cyrillic characters correctly
-        originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+        // Detect if already UTF-8: if it contains characters outside ASCII
+        const isAlreadyUtf8 = /[^\x00-\x7F]/.test(req.file.originalname);
+        if (!isAlreadyUtf8) {
+          const decoded = Buffer.from(req.file.originalname, 'binary').toString('utf8');
+          if (decoded && decoded !== req.file.originalname) {
+            originalName = decoded;
+          }
+        }
       } catch (e) {
         // Fallback
       }
-      const cleanFilename = originalName.replace(/[^a-zA-Z0-9а-яА-ЯёЁ.\-_]/g, '_');
-      const ext = path.extname(cleanFilename);
-      const base = path.basename(cleanFilename, ext);
-      const uniqueFilename = `${base}_${Date.now()}${ext}`;
-      const mimeType = req.file.mimetype || 'application/octet-stream';
+
+      // Extract the basename without extension and sanitize it safely (retaining cyrillic)
+      const baseName = path.basename(originalName, path.extname(originalName));
+      const cleanBase = baseName.replace(/[^a-zA-Z0-9а-яА-ЯёЁ\-_]/g, '_');
+      const uniqueFilename = `${cleanBase}_${Date.now()}${rawExt}`;
+      const mimeType = getMimeType(uniqueFilename, req.file.mimetype || 'application/octet-stream');
 
       if (isS3Configured) {
         try {
@@ -339,24 +374,38 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'Имя файла и данные обязательны' });
     }
 
-    // Clean base64 data (remove header prefix if present, e.g. "data:image/png;base64,")
-    const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
     let buffer: Buffer;
-    let cleanFilename = filename.replace(/[^a-zA-Z0-9.\-_]/g, '_'); // sanitize filename
-    
-    const ext = path.extname(cleanFilename);
-    const base = path.basename(cleanFilename, ext);
-    const uniqueFilename = `${base}_${Date.now()}${ext}`;
+    let mimeType = 'application/octet-stream';
 
-    if (matches && matches.length === 3) {
-      buffer = Buffer.from(matches[2], 'base64');
+    if (base64Data.startsWith('data:')) {
+      const commaIdx = base64Data.indexOf(',');
+      if (commaIdx !== -1) {
+        const header = base64Data.substring(0, commaIdx);
+        const dataPart = base64Data.substring(commaIdx + 1);
+        
+        const mimeMatch = header.match(/data:([^;]+)/);
+        if (mimeMatch) {
+          mimeType = mimeMatch[1];
+        }
+        
+        buffer = Buffer.from(dataPart, 'base64');
+      } else {
+        buffer = Buffer.from(base64Data, 'base64');
+      }
     } else {
       buffer = Buffer.from(base64Data, 'base64');
     }
 
+    const rawExt = path.extname(filename) || '.bin';
+    const baseName = path.basename(filename, rawExt);
+    const cleanBase = baseName.replace(/[^a-zA-Z0-9а-яА-ЯёЁ\-_]/g, '_');
+    const uniqueFilename = `${cleanBase}_${Date.now()}${rawExt}`;
+
+    // Ensure the mime type is corrected by extension helper if generic
+    mimeType = getMimeType(uniqueFilename, mimeType);
+
     if (isS3Configured) {
       try {
-        const mimeType = matches && matches.length === 3 ? matches[1] : 'application/octet-stream';
         const s3Url = await uploadToS3(buffer, uniqueFilename, mimeType);
         return res.json({ url: s3Url });
       } catch (s3Err: any) {
