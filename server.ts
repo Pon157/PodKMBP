@@ -33,7 +33,7 @@ const multerStorage = multer.diskStorage({
     } catch (e) {
       // Fallback
     }
-    const cleanFilename = originalName.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    const cleanFilename = originalName.replace(/[^a-zA-Z0-9а-яА-ЯёЁ.\-_]/g, '_');
     const ext = path.extname(cleanFilename);
     const base = path.basename(cleanFilename, ext);
     cb(null, `${base}_${Date.now()}${ext}`);
