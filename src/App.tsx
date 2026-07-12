@@ -1936,7 +1936,6 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   rows={4}
-                  maxLength={1000}
                   className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white text-xs outline-none focus:border-gummy resize-none placeholder-gummy/30"
                   placeholder="Опишите подробно все детали вашего тейка..."
                   required
