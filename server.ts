@@ -4,6 +4,7 @@ import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import { Storage } from './src/db/storage.ts';
 import dotenv from 'dotenv';
+import multer from 'multer';
 
 dotenv.config();
 
@@ -18,6 +19,31 @@ const uploadsDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
+
+// Multer storage configuration
+const multerStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    let originalName = file.originalname;
+    try {
+      // Decode the original name from latin1 to utf8 to support Cyrillic characters correctly
+      originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+    } catch (e) {
+      // Fallback
+    }
+    const cleanFilename = originalName.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    const ext = path.extname(cleanFilename);
+    const base = path.basename(cleanFilename, ext);
+    cb(null, `${base}_${Date.now()}${ext}`);
+  }
+});
+
+const upload = multer({
+  storage: multerStorage,
+  limits: { fileSize: 100 * 1024 * 1024 } // 100MB limit
+});
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(uploadsDir));
@@ -236,9 +262,16 @@ app.get('/api/avatar-proxy', async (req, res) => {
 });
 
 // File Upload
-app.post('/api/upload', async (req, res) => {
+app.post('/api/upload', upload.single('file'), async (req, res) => {
   try {
-    const { filename, base64Data } = req.body;
+    // If a binary file was uploaded via multipart/form-data
+    if (req.file) {
+      const fileUrl = `/uploads/${req.file.filename}`;
+      return res.json({ url: fileUrl });
+    }
+
+    // Fallback to base64 upload
+    const { filename, base64Data } = req.body || {};
     if (!filename || !base64Data) {
       return res.status(400).json({ error: 'Имя файла и данные обязательны' });
     }
