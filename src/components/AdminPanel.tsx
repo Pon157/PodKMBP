@@ -861,7 +861,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           <Music size={12} /> Загрузить
                           <input
                             type="file"
-                            accept="audio/*"
+                            accept=".mp3,.wav,.m4a,.aac,.flac,.ogg"
                             multiple
                             onChange={async (e) => {
                               const files = e.target.files;
