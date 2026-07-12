@@ -414,33 +414,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   const handleFileUpload = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const base64Data = reader.result as string;
-          const res = await fetch('/api/upload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              filename: file.name,
-              base64Data,
-            }),
-          });
-          if (!res.ok) {
-            const err = await res.json();
-            reject(new Error(err.error || 'Ошибка при загрузке файла'));
-            return;
-          }
-          const data = await res.json();
-          resolve(data.url);
-        } catch (e) {
-          reject(e);
-        }
-      };
-      reader.onerror = () => reject(new Error('Ошибка чтения файла'));
-      reader.readAsDataURL(file);
-    });
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Ошибка при загрузке файла');
+      }
+      
+      const data = await res.json();
+      return data.url;
+    } catch (err: any) {
+      console.error('File upload error in AdminPanel:', err);
+      throw new Error(err.message || 'Ошибка чтения или передачи файла');
+    }
   };
 
   const showStatus = (text: string, type: 'success' | 'error') => {
