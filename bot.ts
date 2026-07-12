@@ -37,6 +37,60 @@ function downloadFileWithProxy(urlStr: string): Promise<Buffer> {
   });
 }
 
+// Upload file to S3 if active, or fallback to local disk
+async function saveMedia(buffer: Buffer, filename: string, mimeType: string): Promise<string> {
+  const isS3Configured = !!(process.env.S3_ACCESS_KEY_ID && process.env.S3_SECRET_ACCESS_KEY && process.env.S3_BUCKET_NAME);
+  if (isS3Configured) {
+    try {
+      const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
+      const endpoint = process.env.S3_ENDPOINT || 'https://storage.yandexcloud.net';
+      const region = process.env.S3_REGION || 'ru-central1';
+      const accessKeyId = process.env.S3_ACCESS_KEY_ID!;
+      const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY!;
+      const bucket = process.env.S3_BUCKET_NAME!;
+
+      const s3 = new S3Client({
+        endpoint: endpoint || undefined,
+        region: region,
+        credentials: {
+          accessKeyId: accessKeyId,
+          secretAccessKey: secretAccessKey,
+        },
+        forcePathStyle: true,
+      });
+
+      const key = `uploads/${Date.now()}_${filename}`;
+      const command = new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: buffer,
+        ContentType: mimeType,
+      });
+
+      await s3.send(command);
+
+      if (process.env.S3_PUBLIC_URL) {
+        const base = process.env.S3_PUBLIC_URL.replace(/\/$/, '');
+        return `${base}/${key}`;
+      }
+      
+      const cleanEndpoint = endpoint.replace(/\/$/, '');
+      return `${cleanEndpoint}/${bucket}/${key}`;
+    } catch (s3Err) {
+      console.error('S3 upload in bot failed, falling back to local file:', s3Err);
+    }
+  }
+
+  // Fallback to local storage
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  const filePath = path.join(uploadsDir, filename);
+  fs.writeFileSync(filePath, buffer);
+  return `/uploads/${filename}`;
+}
+
 export let botInstance: Telegraf | null = null;
 
 export async function sendTelegramNotification(tgId: string, text: string): Promise<boolean> {
@@ -55,7 +109,9 @@ export async function sendTelegramNotificationWithMedia(tgId: string, text: stri
   if (botInstance) {
     try {
       if (mediaUrls && mediaUrls.length > 0) {
-        const mediaGroup: any[] = [];
+        const photosAndVideos: any[] = [];
+        const audiosAndDocuments: { source: any; type: 'audio' | 'document' }[] = [];
+
         for (let i = 0; i < mediaUrls.length; i++) {
           const m = mediaUrls[i];
           let mediaSource: any;
@@ -71,16 +127,69 @@ export async function sendTelegramNotificationWithMedia(tgId: string, text: stri
             mediaSource = m;
           }
 
-          mediaGroup.push({
-            type: 'photo',
-            media: mediaSource,
-            caption: i === 0 ? text : undefined,
-            parse_mode: i === 0 ? 'HTML' : undefined
-          });
+          const isVideo = !!m.match(/\.(mp4|mov|webm|mkv|avi)$/i) || m.toLowerCase().includes('video');
+          const isAudio = !!m.match(/\.(mp3|wav|ogg|m4a|aac|flac)$/i) || m.toLowerCase().includes('audio');
+          const isImage = !!m.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i) || m.toLowerCase().includes('image') || m.toLowerCase().includes('photo');
+
+          if (isVideo) {
+            photosAndVideos.push({
+              type: 'video',
+              media: mediaSource
+            });
+          } else if (isImage) {
+            photosAndVideos.push({
+              type: 'photo',
+              media: mediaSource
+            });
+          } else if (isAudio) {
+            audiosAndDocuments.push({
+              source: mediaSource,
+              type: 'audio'
+            });
+          } else {
+            audiosAndDocuments.push({
+              source: mediaSource,
+              type: 'document'
+            });
+          }
         }
 
-        if (mediaGroup.length > 0) {
-          await botInstance.telegram.sendMediaGroup(tgId, mediaGroup);
+        // If we have photos or videos, we can send them as a single media group
+        if (photosAndVideos.length > 0) {
+          photosAndVideos[0].caption = text;
+          photosAndVideos[0].parse_mode = 'HTML';
+
+          await botInstance.telegram.sendMediaGroup(tgId, photosAndVideos);
+
+          // Then send any audios or documents
+          for (const item of audiosAndDocuments) {
+            try {
+              if (item.type === 'audio') {
+                await botInstance.telegram.sendAudio(tgId, item.source);
+              } else {
+                await botInstance.telegram.sendDocument(tgId, item.source);
+              }
+            } catch (mediaErr) {
+              console.error('Failed to send individual media item to Telegram:', mediaErr);
+            }
+          }
+          return true;
+        }
+
+        // If we only have audios or documents, send the text first and then send the files
+        if (audiosAndDocuments.length > 0) {
+          await botInstance.telegram.sendMessage(tgId, text, { parse_mode: 'HTML' });
+          for (const item of audiosAndDocuments) {
+            try {
+              if (item.type === 'audio') {
+                await botInstance.telegram.sendAudio(tgId, item.source);
+              } else {
+                await botInstance.telegram.sendDocument(tgId, item.source);
+              }
+            } catch (mediaErr) {
+              console.error('Failed to send individual media item to Telegram:', mediaErr);
+            }
+          }
           return true;
         }
       }
@@ -335,14 +444,9 @@ bot.on('message', async (ctx) => {
         if (file && file.file_path) {
           const downloadUrl = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
           const buffer = await downloadFileWithProxy(downloadUrl);
-          const uploadsDir = path.join(process.cwd(), 'uploads');
-          if (!fs.existsSync(uploadsDir)) {
-            fs.mkdirSync(uploadsDir, { recursive: true });
-          }
           const mediaFilename = `tg_${tgId}_${Date.now()}_photo.jpg`;
-          fs.writeFileSync(path.join(uploadsDir, mediaFilename), buffer);
-          const localUrl = `/uploads/${mediaFilename}`;
-          mediaUrls.push(localUrl);
+          const url = await saveMedia(buffer, mediaFilename, 'image/jpeg');
+          mediaUrls.push(url);
         } else {
           const fileLink = await ctx.telegram.getFileLink(highestResPhoto.file_id);
           mediaUrls.push(fileLink.toString());
@@ -354,6 +458,73 @@ bot.on('message', async (ctx) => {
       }
       textContent = ctx.message.caption || '🖼️ [Фотография]';
     } 
+    // Handle Video message
+    else if ('video' in ctx.message) {
+      try {
+        const video = ctx.message.video;
+        const file = await ctx.telegram.getFile(video.file_id);
+        if (file && file.file_path) {
+          const downloadUrl = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+          const buffer = await downloadFileWithProxy(downloadUrl);
+          const mediaFilename = `tg_${tgId}_${Date.now()}_video.mp4`;
+          const url = await saveMedia(buffer, mediaFilename, video.mime_type || 'video/mp4');
+          mediaUrls.push(url);
+        } else {
+          const fileLink = await ctx.telegram.getFileLink(video.file_id);
+          mediaUrls.push(fileLink.toString());
+        }
+      } catch (e) {
+        console.error('Failed to download user video from Telegram:', e);
+        const fileLink = await ctx.telegram.getFileLink(ctx.message.video.file_id);
+        mediaUrls.push(fileLink.toString());
+      }
+      textContent = ctx.message.caption || '🎥 [Видеозапись]';
+    }
+    // Handle Voice message
+    else if ('voice' in ctx.message) {
+      try {
+        const voice = ctx.message.voice;
+        const file = await ctx.telegram.getFile(voice.file_id);
+        if (file && file.file_path) {
+          const downloadUrl = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+          const buffer = await downloadFileWithProxy(downloadUrl);
+          const mediaFilename = `tg_${tgId}_${Date.now()}_voice.ogg`;
+          const url = await saveMedia(buffer, mediaFilename, 'audio/ogg');
+          mediaUrls.push(url);
+        } else {
+          const fileLink = await ctx.telegram.getFileLink(voice.file_id);
+          mediaUrls.push(fileLink.toString());
+        }
+      } catch (e) {
+        console.error('Failed to download user voice from Telegram:', e);
+        const fileLink = await ctx.telegram.getFileLink(ctx.message.voice.file_id);
+        mediaUrls.push(fileLink.toString());
+      }
+      textContent = ctx.message.caption || '🎤 [Голосовое сообщение]';
+    }
+    // Handle Audio message
+    else if ('audio' in ctx.message) {
+      try {
+        const audio = ctx.message.audio;
+        const file = await ctx.telegram.getFile(audio.file_id);
+        if (file && file.file_path) {
+          const downloadUrl = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+          const buffer = await downloadFileWithProxy(downloadUrl);
+          const cleanName = (audio.file_name || 'audio.mp3').replace(/[^a-zA-Z0-9.\-_]/g, '_');
+          const mediaFilename = `tg_${tgId}_${Date.now()}_${cleanName}`;
+          const url = await saveMedia(buffer, mediaFilename, audio.mime_type || 'audio/mpeg');
+          mediaUrls.push(url);
+        } else {
+          const fileLink = await ctx.telegram.getFileLink(audio.file_id);
+          mediaUrls.push(fileLink.toString());
+        }
+      } catch (e) {
+        console.error('Failed to download user audio from Telegram:', e);
+        const fileLink = await ctx.telegram.getFileLink(ctx.message.audio.file_id);
+        mediaUrls.push(fileLink.toString());
+      }
+      textContent = ctx.message.caption || `🎵 [Аудиозапись: ${ctx.message.audio.file_name || 'Трек'}]`;
+    }
     // Handle plain text message
     else if ('text' in ctx.message) {
       textContent = ctx.message.text;
@@ -366,15 +537,10 @@ bot.on('message', async (ctx) => {
         if (file && file.file_path) {
           const downloadUrl = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
           const buffer = await downloadFileWithProxy(downloadUrl);
-          const uploadsDir = path.join(process.cwd(), 'uploads');
-          if (!fs.existsSync(uploadsDir)) {
-            fs.mkdirSync(uploadsDir, { recursive: true });
-          }
           const cleanName = (doc.file_name || 'file').replace(/[^a-zA-Z0-9.\-_]/g, '_');
           const mediaFilename = `tg_${tgId}_${Date.now()}_${cleanName}`;
-          fs.writeFileSync(path.join(uploadsDir, mediaFilename), buffer);
-          const localUrl = `/uploads/${mediaFilename}`;
-          mediaUrls.push(localUrl);
+          const url = await saveMedia(buffer, mediaFilename, doc.mime_type || 'application/octet-stream');
+          mediaUrls.push(url);
         } else {
           const fileLink = await ctx.telegram.getFileLink(doc.file_id);
           mediaUrls.push(fileLink.toString());
@@ -386,7 +552,7 @@ bot.on('message', async (ctx) => {
       }
       textContent = ctx.message.caption || `📎 [Документ: ${ctx.message.document.file_name || 'Файл'}]`;
     } else {
-      return ctx.reply('<tg-emoji emoji-id="5447644880824181073">⚠️</tg-emoji> Данный тип вложений не поддерживается. Пожалуйста, прикрепите фото или введите обычный текст.', { parse_mode: 'HTML' });
+      return ctx.reply('<tg-emoji emoji-id="5447644880824181073">⚠️</tg-emoji> Данный тип вложений не поддерживается. Пожалуйста, прикрепите фото, видео, аудио или введите обычный текст.', { parse_mode: 'HTML' });
     }
 
     // Append message to take dialog
