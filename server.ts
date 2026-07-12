@@ -5,6 +5,7 @@ import { createServer as createViteServer } from 'vite';
 import { Storage } from './src/db/storage.ts';
 import dotenv from 'dotenv';
 import multer from 'multer';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 dotenv.config();
 
@@ -261,13 +262,76 @@ app.get('/api/avatar-proxy', async (req, res) => {
   }
 });
 
+// Helper to upload a file buffer to S3-compatible cloud storage
+async function uploadToS3(fileBuffer: Buffer, filename: string, mimeType: string): Promise<string> {
+  const endpoint = process.env.S3_ENDPOINT || 'https://storage.yandexcloud.net';
+  const region = process.env.S3_REGION || 'ru-central1';
+  const accessKeyId = process.env.S3_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY;
+  const bucket = process.env.S3_BUCKET_NAME;
+
+  if (!accessKeyId || !secretAccessKey || !bucket) {
+    throw new Error('S3 credentials or bucket name are not configured.');
+  }
+
+  const s3 = new S3Client({
+    endpoint: endpoint || undefined,
+    region: region,
+    credentials: {
+      accessKeyId: accessKeyId,
+      secretAccessKey: secretAccessKey,
+    },
+    forcePathStyle: true, // required for compatibility with Yandex Object Storage, MinIO, etc.
+  });
+
+  const key = `uploads/${Date.now()}_${filename}`;
+  const command = new PutObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    Body: fileBuffer,
+    ContentType: mimeType,
+  });
+
+  await s3.send(command);
+
+  if (process.env.S3_PUBLIC_URL) {
+    const base = process.env.S3_PUBLIC_URL.replace(/\/$/, '');
+    return `${base}/${key}`;
+  }
+  
+  const cleanEndpoint = endpoint.replace(/\/$/, '');
+  return `${cleanEndpoint}/${bucket}/${key}`;
+}
+
 // File Upload
 app.post('/api/upload', upload.single('file'), async (req, res) => {
   try {
+    const isS3Configured = !!(process.env.S3_ACCESS_KEY_ID && process.env.S3_SECRET_ACCESS_KEY && process.env.S3_BUCKET_NAME);
+
     // If a binary file was uploaded via multipart/form-data
     if (req.file) {
-      const fileUrl = `/uploads/${req.file.filename}`;
-      return res.json({ url: fileUrl });
+      if (isS3Configured) {
+        try {
+          const fileBuffer = await fs.promises.readFile(req.file.path);
+          const mimeType = req.file.mimetype || 'application/octet-stream';
+          const s3Url = await uploadToS3(fileBuffer, req.file.filename, mimeType);
+          
+          // Delete local file to save disk space
+          await fs.promises.unlink(req.file.path).catch(err => 
+            console.error('Failed to delete local temp file:', err)
+          );
+          
+          return res.json({ url: s3Url });
+        } catch (s3Err: any) {
+          console.error('S3 upload failed, falling back to local storage:', s3Err);
+          // Fallback: don't delete local, return local URL
+          const fileUrl = `/uploads/${req.file.filename}`;
+          return res.json({ url: fileUrl });
+        }
+      } else {
+        const fileUrl = `/uploads/${req.file.filename}`;
+        return res.json({ url: fileUrl });
+      }
     }
 
     // Fallback to base64 upload
@@ -291,16 +355,31 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       buffer = Buffer.from(base64Data, 'base64');
     }
 
-    const filePath = path.join(uploadsDir, uniqueFilename);
-    await fs.promises.writeFile(filePath, buffer);
-
-    const fileUrl = `/uploads/${uniqueFilename}`;
-    res.json({ url: fileUrl });
+    if (isS3Configured) {
+      try {
+        const mimeType = matches && matches.length === 3 ? matches[1] : 'application/octet-stream';
+        const s3Url = await uploadToS3(buffer, uniqueFilename, mimeType);
+        return res.json({ url: s3Url });
+      } catch (s3Err: any) {
+        console.error('S3 Base64 upload failed, falling back to local storage:', s3Err);
+        // Fallback: write to local disk
+        const filePath = path.join(uploadsDir, uniqueFilename);
+        await fs.promises.writeFile(filePath, buffer);
+        const fileUrl = `/uploads/${uniqueFilename}`;
+        return res.json({ url: fileUrl });
+      }
+    } else {
+      const filePath = path.join(uploadsDir, uniqueFilename);
+      await fs.promises.writeFile(filePath, buffer);
+      const fileUrl = `/uploads/${uniqueFilename}`;
+      return res.json({ url: fileUrl });
+    }
   } catch (err: any) {
     console.error('File upload error:', err);
     res.status(500).json({ error: 'Ошибка загрузки файла: ' + err.message });
   }
 });
+
 
 // Auth Login
 app.post('/api/auth/login', async (req, res) => {
