@@ -11,7 +11,7 @@ import { AdminPanel } from './components/AdminPanel';
 import { 
   Sparkles, ExternalLink, MessageSquare, AlertCircle, 
   ChevronRight, Heart, Send, Check, Shield, HelpCircle, 
-  MapPin, Eye, Play, Plus, BookOpen, Volume2, Globe, Trash2, Lock, ShieldAlert,
+  MapPin, Eye, EyeOff, Play, Plus, BookOpen, Volume2, Globe, Trash2, Lock, ShieldAlert,
   Lightbulb, AlertTriangle, Bot, Paperclip, Scroll, Image, Music
 } from 'lucide-react';
 
@@ -2650,6 +2650,7 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onLogin }) => {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -2715,15 +2716,25 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onLogin }) => {
 
           <div className="flex flex-col gap-1">
             <label className="text-[10px] uppercase font-bold text-gummy/70">Пароль доступа</label>
-            <input
-              id="login-password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Введите пароль"
-              className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white text-xs outline-none focus:border-gummy"
-              required
-            />
+            <div className="relative">
+              <input
+                id="login-password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Введите пароль"
+                className="w-full bg-wine border-2 border-gummy/20 rounded-xl pl-4 pr-10 py-2.5 text-white text-xs outline-none focus:border-gummy"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gummy/50 hover:text-gummy transition-colors focus:outline-none"
+                title={showPassword ? "Скрыть пароль" : "Показать пароль"}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
 
           <button
