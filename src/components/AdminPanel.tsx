@@ -1112,7 +1112,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           </div>
                           <div className="relative group/take-content bg-wine/20 border border-gummy/10 rounded-xl p-3 mt-1.5 max-h-36 overflow-y-auto">
                             <p className="text-sm text-white font-medium whitespace-pre-line pr-16 leading-relaxed">{take.content}</p>
-                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/take-content:opacity-100 transition-opacity">
+                            <div className="absolute top-2 right-2 flex gap-1 md:opacity-0 md:group-hover/take-content:opacity-100 transition-opacity">
                               <button
                                 onClick={() => handleCopyText(take.content, `take-${take.id}`)}
                                 title="Скопировать"
@@ -1303,7 +1303,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           <p className="text-xs xl:text-sm font-semibold text-white max-h-24 overflow-y-auto pr-16 leading-relaxed whitespace-pre-line">
                             "{activeChatTake.content}"
                           </p>
-                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/take-header:opacity-100 transition-opacity">
+                          <div className="absolute top-2 right-2 flex gap-1 md:opacity-0 md:group-hover/take-header:opacity-100 transition-opacity">
                             <button
                               onClick={() => handleCopyText(activeChatTake.content, `chat-${activeChatTake.id}`)}
                               title="Скопировать"
@@ -1369,7 +1369,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                             <button
                               onClick={() => handleCopyText(msg.text, `msg-gen-${index}`)}
                               title="Скопировать сообщение"
-                              className={`absolute top-2 right-2 p-1 rounded transition-all opacity-0 group-hover/msg:opacity-100 cursor-pointer ${
+                              className={`absolute top-2 right-2 p-1 rounded transition-all md:opacity-0 md:group-hover/msg:opacity-100 cursor-pointer ${
                                 msg.sender === 'admin' 
                                   ? 'bg-wine/10 text-wine hover:bg-wine/20' 
                                   : 'bg-wine-dark/60 text-gummy hover:text-white border border-gummy/20'
@@ -1905,7 +1905,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           <p className="text-xs xl:text-sm font-semibold text-white max-h-24 overflow-y-auto pr-16 leading-relaxed whitespace-pre-line">
                             "{activeChatTake.content}"
                           </p>
-                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/take-header:opacity-100 transition-opacity">
+                          <div className="absolute top-2 right-2 flex gap-1 md:opacity-0 md:group-hover/take-header:opacity-100 transition-opacity">
                             <button
                               onClick={() => handleCopyText(activeChatTake.content, `chat-${activeChatTake.id}`)}
                               title="Скопировать"
@@ -1971,7 +1971,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                             <button
                               onClick={() => handleCopyText(msg.text, `msg-pers-${index}`)}
                               title="Скопировать сообщение"
-                              className={`absolute top-2 right-2 p-1 rounded transition-all opacity-0 group-hover/msg:opacity-100 cursor-pointer ${
+                              className={`absolute top-2 right-2 p-1 rounded transition-all md:opacity-0 md:group-hover/msg:opacity-100 cursor-pointer ${
                                 msg.sender === 'admin' 
                                   ? 'bg-wine/10 text-wine hover:bg-wine/20' 
                                   : 'bg-wine-dark/60 text-gummy hover:text-white border border-gummy/20'
