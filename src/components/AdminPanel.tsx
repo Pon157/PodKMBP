@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { 
   Users, UserCheck, MessageSquare, FileText, Settings, LogOut, 
   Plus, Edit2, Trash2, Send, CornerDownRight, Check, AlertCircle, ShieldAlert,
-  Clock, CheckCircle2, Lightbulb, AlertTriangle, Image, Music, Download
+  Clock, CheckCircle2, Lightbulb, AlertTriangle, Image, Music, Download, Play
 } from 'lucide-react';
 import { MusicPlayer } from './MusicPlayer';
 
@@ -1008,11 +1008,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                               <div className="flex flex-col gap-2 mt-3">
                                 <div className="flex flex-wrap gap-2">
                                   {mediaUrls.map((url, idx) => {
-                                    const isAudio = url.match(/\.(mp3|wav|ogg|m4a)$/i) || url.includes('audio');
+                                    const isAudio = url.match(/\.(mp3|wav|ogg|m4a|aac|flac)$/i) || url.includes('audio');
+                                    const isVideo = url.match(/\.(mp4|mov|webm|mkv|avi)$/i) || url.includes('video');
                                     return (
                                       <a key={idx} href={url} target="_blank" rel="noreferrer" className="relative group border border-gummy/20 rounded-lg overflow-hidden w-20 h-20 flex items-center justify-center bg-wine/30 hover:border-gummy transition-all" title="Нажмите, чтобы открыть">
                                         {isAudio ? (
                                           <Music size={24} className="text-gummy" />
+                                        ) : isVideo ? (
+                                          <Play size={24} className="text-gummy" />
                                         ) : (
                                           <img src={url} alt={`Прикрепленный файл ${idx + 1}`} className="w-full h-full object-cover" />
                                         )}
@@ -1177,11 +1180,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                             <div className="flex flex-col gap-2 mt-2">
                               <div className="flex flex-wrap gap-2">
                                 {mediaUrls.map((url, idx) => {
-                                  const isAudio = url.match(/\.(mp3|wav|ogg|m4a)$/i) || url.includes('audio');
+                                  const isAudio = url.match(/\.(mp3|wav|ogg|m4a|aac|flac)$/i) || url.includes('audio');
+                                  const isVideo = url.match(/\.(mp4|mov|webm|mkv|avi)$/i) || url.includes('video');
                                   return (
                                     <a key={idx} href={url} target="_blank" rel="noreferrer" className="text-xs text-gummy hover:underline flex items-center gap-1.5 bg-wine/30 border border-gummy/20 px-2.5 py-1.5 rounded-lg transition-all hover:border-gummy">
-                                      {isAudio ? <Music size={12} /> : <Image size={12} />}
-                                      <span>{isAudio ? 'Музыка' : 'Фото'} #{idx + 1}</span>
+                                      {isAudio ? <Music size={12} /> : isVideo ? <Play size={12} /> : <Image size={12} />}
+                                      <span>{isAudio ? 'Музыка' : isVideo ? 'Видео' : 'Фото'} #{idx + 1}</span>
                                     </a>
                                   );
                                 })}
@@ -1757,11 +1761,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                             <div className="flex flex-col gap-2 mt-2">
                               <div className="flex flex-wrap gap-2">
                                 {mediaUrls.map((url, idx) => {
-                                  const isAudio = url.match(/\.(mp3|wav|ogg|m4a)$/i) || url.includes('audio');
+                                  const isAudio = url.match(/\.(mp3|wav|ogg|m4a|aac|flac)$/i) || url.includes('audio');
+                                  const isVideo = url.match(/\.(mp4|mov|webm|mkv|avi)$/i) || url.includes('video');
                                   return (
                                     <a key={idx} href={url} target="_blank" rel="noreferrer" className="text-xs text-gummy hover:underline flex items-center gap-1.5 bg-wine/30 border border-gummy/20 px-2.5 py-1.5 rounded-lg transition-all hover:border-gummy">
-                                      {isAudio ? <Music size={12} /> : <Image size={12} />}
-                                      <span>{isAudio ? 'Музыка' : 'Фото'} #{idx + 1}</span>
+                                      {isAudio ? <Music size={12} /> : isVideo ? <Play size={12} /> : <Image size={12} />}
+                                      <span>{isAudio ? 'Музыка' : isVideo ? 'Видео' : 'Фото'} #{idx + 1}</span>
                                     </a>
                                   );
                                 })}
