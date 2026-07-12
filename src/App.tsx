@@ -409,6 +409,7 @@ const SupportPage: React.FC<SupportPageProps> = ({ tgUser }) => {
   const [captchaAnswer, setCaptchaAnswer] = useState('');
   const [userContact, setUserContact] = useState(tgUser?.username ? `@${tgUser.username}` : '');
   const [supportImageFailed, setSupportImageFailed] = useState(false);
+  const supportFileInputRef = React.useRef<HTMLInputElement>(null);
 
   const fetchCaptcha = async () => {
     try {
@@ -428,26 +429,26 @@ const SupportPage: React.FC<SupportPageProps> = ({ tgUser }) => {
   }, []);
 
   const handleFileUpload = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const base64Data = reader.result as string;
-          const res = await fetch('/api/upload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename: file.name, base64Data }),
-          });
-          const data = await res.json();
-          if (res.ok) resolve(data.url);
-          else reject(new Error(data.error || 'Upload failed'));
-        } catch (err) {
-          reject(err);
-        }
-      };
-      reader.onerror = () => reject(new Error('File reading error'));
-      reader.readAsDataURL(file);
-    });
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Ошибка при загрузке файла');
+      }
+      
+      const data = await res.json();
+      return data.url;
+    } catch (err: any) {
+      console.error('File upload error:', err);
+      throw new Error(err.message || 'Ошибка чтения или передачи файла');
+    }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -659,17 +660,21 @@ const SupportPage: React.FC<SupportPageProps> = ({ tgUser }) => {
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] uppercase font-bold text-gummy/70">Скриншоты или медиа файлы (до 5 штук)</label>
                 <div className="flex flex-col gap-3">
-                  <label className="border-2 border-dashed border-gummy/30 hover:border-gummy/70 rounded-xl p-4 flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:bg-wine-dark/20 transition-all text-center">
+                  <div 
+                    onClick={() => supportFileInputRef.current?.click()}
+                    className="border-2 border-dashed border-gummy/30 hover:border-gummy/70 rounded-xl p-4 flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:bg-wine-dark/20 transition-all text-center"
+                  >
                     <span className="text-xs text-gummy font-semibold flex items-center gap-1"><Paperclip size={14} className="text-gummy" /> Нажмите или перетащите файлы</span>
-                    <span className="text-[9px] text-gummy/50 font-mono">JPG, PNG, GIF до 10MB</span>
+                    <span className="text-[9px] text-gummy/50 font-mono">Любые медиа файлы (до 50МБ)</span>
                     <input
-                      id="support-file-picker"
+                      ref={supportFileInputRef}
                       type="file"
                       multiple
+                      accept="image/*,audio/*,video/*"
                       onChange={handleFileChange}
                       className="hidden"
                     />
-                  </label>
+                  </div>
 
                   {mediaList.length > 0 && (
                     <div className="flex flex-wrap gap-2">
@@ -1532,6 +1537,7 @@ interface TakeSubmissionPageProps {
 const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initialAdmins, tgUser, setTgUser }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const [admins, setAdmins] = useState<Admin[]>(initialAdmins);
   const [type, setType] = useState<'take' | 'idea'>('take');
@@ -1657,33 +1663,26 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
 
   // Handle file uploads directly
   const handleFileUpload = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const base64Data = reader.result as string;
-          const res = await fetch('/api/upload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              filename: file.name,
-              base64Data,
-            }),
-          });
-          if (!res.ok) {
-            const err = await res.json();
-            reject(new Error(err.error || 'Ошибка при загрузке файла'));
-            return;
-          }
-          const data = await res.json();
-          resolve(data.url);
-        } catch (e) {
-          reject(e);
-        }
-      };
-      reader.onerror = () => reject(new Error('Ошибка чтения файла'));
-      reader.readAsDataURL(file);
-    });
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Ошибка при загрузке файла');
+      }
+      
+      const data = await res.json();
+      return data.url;
+    } catch (err: any) {
+      console.error('File upload error:', err);
+      throw new Error(err.message || 'Ошибка чтения или передачи файла');
+    }
   };
 
   // Handle pre-selected admin from profile routing
@@ -1952,49 +1951,58 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
                   <div className="flex-1 bg-wine/30 border border-gummy/20 rounded-xl px-4 py-2.5 text-gummy/50 text-xs">
                     Загружено: {mediaList.length} / 10 файлов
                   </div>
-                  <label className="bg-gummy hover:bg-white text-wine font-bold px-4 py-2.5 rounded-xl cursor-pointer transition-all text-xs flex items-center justify-center shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="bg-gummy hover:bg-white text-wine font-bold px-4 py-2.5 rounded-xl cursor-pointer transition-all text-xs flex items-center justify-center shrink-0"
+                  >
                     Выбрать файл <Image size={13} className="ml-1 text-wine shrink-0" />
-                    <input
-                      type="file"
-                      multiple
-                      onChange={async (e) => {
-                        const files = e.target.files;
-                        if (!files || files.length === 0) return;
-                        if (mediaList.length + files.length > 10) {
-                          setErrorMsg('Превышен лимит! Максимум можно прикрепить 10 файлов.');
-                          return;
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*,audio/*,video/*"
+                    onChange={async (e) => {
+                      const files = e.target.files;
+                      if (!files || files.length === 0) return;
+                      if (mediaList.length + files.length > 10) {
+                        setErrorMsg('Превышен лимит! Максимум можно прикрепить 10 файлов.');
+                        return;
+                      }
+                      
+                      setErrorMsg('Идет загрузка файлов...');
+                      for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        if (file.size > 50 * 1024 * 1024) {
+                          setErrorMsg(`Файл "${file.name}" превышает 50МБ.`);
+                          continue;
                         }
-                        
-                        setErrorMsg('Идет загрузка файлов...');
-                        for (let i = 0; i < files.length; i++) {
-                          const file = files[i];
-                          if (file.size > 50 * 1024 * 1024) {
-                            setErrorMsg(`Файл "${file.name}" превышает 50МБ.`);
-                            continue;
-                          }
-                          try {
-                            const url = await handleFileUpload(file);
-                            setMediaList(prev => [...prev, url]);
-                            setErrorMsg('');
-                          } catch (err: any) {
-                            setErrorMsg(err.message || 'Ошибка при загрузке файла');
-                          }
+                        try {
+                          const url = await handleFileUpload(file);
+                          setMediaList(prev => [...prev, url]);
+                          setErrorMsg('');
+                        } catch (err: any) {
+                          setErrorMsg(err.message || 'Ошибка при загрузке файла');
                         }
-                      }}
-                      className="hidden"
-                    />
-                  </label>
+                      }
+                    }}
+                    className="hidden"
+                  />
                 </div>
 
                 {/* Grid of uploaded files with remove button */}
                 {mediaList.length > 0 && (
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 bg-wine-dark/30 border-2 border-dashed border-gummy/20 p-4 rounded-2xl">
                     {mediaList.map((url, index) => {
-                      const isAudio = url.match(/\.(mp3|wav|ogg|m4a)$/i) || url.includes('audio');
+                      const isAudio = url.match(/\.(mp3|wav|ogg|m4a|aac|flac)$/i) || url.includes('audio');
+                      const isVideo = url.match(/\.(mp4|mov|webm|mkv|avi)$/i) || url.includes('video');
                       return (
                         <div key={index} className="relative group aspect-square bg-wine border border-gummy/20 rounded-xl overflow-hidden flex flex-col items-center justify-center p-2">
                           {isAudio ? (
                             <Music size={28} className="text-gummy shrink-0" />
+                          ) : isVideo ? (
+                            <Play size={28} className="text-gummy shrink-0" />
                           ) : (
                             <img src={url} alt="Загружено" className="w-full h-full object-cover rounded-lg" />
                           )}
