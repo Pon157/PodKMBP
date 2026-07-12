@@ -348,23 +348,16 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       const uniqueFilename = `${cleanBase}_${Date.now()}${rawExt}`;
       const mimeType = getMimeType(uniqueFilename, req.file.mimetype || 'application/octet-stream');
 
-      if (isS3Configured) {
-        try {
-          const s3Url = await uploadToS3(req.file.buffer, uniqueFilename, mimeType);
-          return res.json({ url: s3Url });
-        } catch (s3Err: any) {
-          console.error('S3 upload failed, falling back to local storage:', s3Err);
-          // Fallback to local storage
-          const filePath = path.join(uploadsDir, uniqueFilename);
-          await fs.promises.writeFile(filePath, req.file.buffer);
-          const fileUrl = `/uploads/${uniqueFilename}`;
-          return res.json({ url: fileUrl });
-        }
-      } else {
-        const filePath = path.join(uploadsDir, uniqueFilename);
-        await fs.promises.writeFile(filePath, req.file.buffer);
-        const fileUrl = `/uploads/${uniqueFilename}`;
-        return res.json({ url: fileUrl });
+      if (!isS3Configured) {
+        return res.status(400).json({ error: 'S3-хранилище не настроено. Загрузка локальных файлов на сервер строго отключена.' });
+      }
+
+      try {
+        const s3Url = await uploadToS3(req.file.buffer, uniqueFilename, mimeType);
+        return res.json({ url: s3Url });
+      } catch (s3Err: any) {
+        console.error('S3 upload failed:', s3Err);
+        return res.status(500).json({ error: 'Ошибка загрузки в S3-облако: ' + s3Err.message });
       }
     }
 
@@ -404,23 +397,16 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     // Ensure the mime type is corrected by extension helper if generic
     mimeType = getMimeType(uniqueFilename, mimeType);
 
-    if (isS3Configured) {
-      try {
-        const s3Url = await uploadToS3(buffer, uniqueFilename, mimeType);
-        return res.json({ url: s3Url });
-      } catch (s3Err: any) {
-        console.error('S3 Base64 upload failed, falling back to local storage:', s3Err);
-        // Fallback: write to local disk
-        const filePath = path.join(uploadsDir, uniqueFilename);
-        await fs.promises.writeFile(filePath, buffer);
-        const fileUrl = `/uploads/${uniqueFilename}`;
-        return res.json({ url: fileUrl });
-      }
-    } else {
-      const filePath = path.join(uploadsDir, uniqueFilename);
-      await fs.promises.writeFile(filePath, buffer);
-      const fileUrl = `/uploads/${uniqueFilename}`;
-      return res.json({ url: fileUrl });
+    if (!isS3Configured) {
+      return res.status(400).json({ error: 'S3-хранилище не настроено. Загрузка локальных файлов на сервер строго отключена.' });
+    }
+
+    try {
+      const s3Url = await uploadToS3(buffer, uniqueFilename, mimeType);
+      return res.json({ url: s3Url });
+    } catch (s3Err: any) {
+      console.error('S3 Base64 upload failed:', s3Err);
+      return res.status(500).json({ error: 'Ошибка загрузки base64 в S3-облако: ' + s3Err.message });
     }
   } catch (err: any) {
     console.error('File upload error:', err);
@@ -622,12 +608,12 @@ app.post('/api/takes', async (req, res) => {
       const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
       const chatLink = `${cleanBaseUrl}/admin-panel?takeId=${newTake.id}`;
 
-      const text = `<b>🆕 ПОЛУЧЕН НОВЫЙ ТЕЙК!</b>\n\n` +
+      const text = `<b><tg-emoji emoji-id="5382357040008021292">🆕</tg-emoji> ПОЛУЧЕН НОВЫЙ ТЕЙК!</b>\n\n` +
         `<b>Тип:</b> ${typeLabel}\n` +
         `<b>Адресат:</b> ${targetName}\n` +
         `<b>Содержание:</b>\n<i>${content}</i>\n` +
         (imageUrl ? `\n🖼️ <i>Прикреплено изображение</i>` : '') +
-        `\n\n🔗 <a href="${chatLink}">Ответьте через админ-панель на сайте!</a>`;
+        `\n\n<tg-emoji emoji-id="5271604874419647061">🔗</tg-emoji> <a href="${chatLink}">Ответьте через админ-панель на сайте!</a>`;
       
       let mediaUrls: string[] = [];
       if (imageUrl) {
@@ -701,7 +687,7 @@ app.post('/api/takes/:id/claim', async (req, res) => {
     const owner = allAdmins.find(a => a.id === 'owner');
 
     if (claimant && owner && owner.tgId) {
-      const text = `<b>✅ Тейк взят в работу!</b>\n\n` +
+      const text = `<b><tg-emoji emoji-id="5206607081334906820">✔️</tg-emoji> Тейк взят в работу!</b>\n\n` +
         `<b>Администратор:</b> ${claimant.nickname}\n` +
         `<b>Содержание тейка:</b>\n<i>${take.content}</i>`;
       await notifyTelegram(owner.tgId, text);
@@ -745,7 +731,7 @@ app.post('/api/takes/:id/dialogue', async (req, res) => {
         const allAdmins = await Storage.getAdmins();
         const targetAdmin = allAdmins.find(a => a.id === targetAdminId);
         if (targetAdmin && targetAdmin.tgId) {
-          let textMsg = `<b>💬 НОВОЕ СООБЩЕНИЕ В ТЕЙКЕ!</b>\n\n` +
+          let textMsg = `<b><tg-emoji emoji-id="5443038326535759644">💬</tg-emoji> НОВОЕ СООБЩЕНИЕ В ТЕЙКЕ!</b>\n\n` +
             `От пользователя в чате тейка:\n` +
             `<i>"${text}"</i>`;
           if (mediaUrls && mediaUrls.length > 0) {
@@ -759,7 +745,7 @@ app.post('/api/takes/:id/dialogue', async (req, res) => {
     // Notify user on Telegram if admin sends a message
     if (sender === 'admin') {
       if (take.userTgId) {
-        let textMsg = `<b>💬 НОВЫЙ ОТВЕТ ОТ АДМИНИСТРАТОРА!</b>\n\n` +
+        let textMsg = `<b><tg-emoji emoji-id="5443038326535759644">💬</tg-emoji> НОВЫЙ ОТВЕТ ОТ АДМИНИСТРАТОРА!</b>\n\n` +
           `В чате вашего тейка:\n` +
           `<i>"${text}"</i>\n`;
         
@@ -772,7 +758,7 @@ app.post('/api/takes/:id/dialogue', async (req, res) => {
           });
         }
         
-        textMsg += `\n🤖 Вы можете ответить на это сообщение прямо здесь в боте!`;
+        textMsg += `\n<tg-emoji emoji-id="5334544901428229844">ℹ️</tg-emoji> Вы можете ответить на это сообщение прямо здесь в боте!`;
         await notifyTelegram(take.userTgId, textMsg, mediaUrls);
       }
     }
@@ -821,13 +807,13 @@ app.post('/api/surveys', async (req, res) => {
     const allAdmins = await Storage.getAdmins();
     const owner = allAdmins.find(a => a.id === 'owner');
     if (owner && owner.tgId) {
-      const tgText = `<b>📝 ПОЛУЧЕНА НОВАЯ АНКЕТА В КОМАНДУ!</b>\n\n` +
+      const tgText = `<b><tg-emoji emoji-id="5382357040008021292">🆕</tg-emoji> ПОЛУЧЕНА НОВАЯ АНКЕТА В КОМАНДУ!</b>\n\n` +
         `<b>1. Откуда узнали:</b> ${source}\n` +
         `<b>2. Сфера деятельности:</b> ${sphere}\n` +
         `<b>3. Возраст:</b> ${age}\n` +
         `<b>4. Чем хотят заниматься:</b> ${roleInterest}\n` +
         `<b>5. Как готовы помочь:</b>\n<i>${helpDescription}</i>\n\n` +
-        `💻 <i>Проверьте панель владельца для просмотра всех заявок!</i>`;
+        `<i>Проверьте панель владельца для просмотра всех заявок!</i>`;
       await notifyTelegram(owner.tgId, tgText);
     }
 
