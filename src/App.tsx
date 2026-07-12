@@ -670,7 +670,7 @@ const SupportPage: React.FC<SupportPageProps> = ({ tgUser }) => {
                       ref={supportFileInputRef}
                       type="file"
                       multiple
-                      accept="image/*,audio/*,video/*"
+                      accept="image/*,video/*,.mp3,.wav,.m4a,.aac,.flac,.ogg,.mp4,.mov"
                       onChange={handleFileChange}
                       className="hidden"
                     />
@@ -1962,7 +1962,7 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
                     ref={fileInputRef}
                     type="file"
                     multiple
-                    accept="image/*,audio/*,video/*"
+                    accept="image/*,video/*,.mp3,.wav,.m4a,.aac,.flac,.ogg,.mp4,.mov"
                     onChange={async (e) => {
                       const files = e.target.files;
                       if (!files || files.length === 0) return;
