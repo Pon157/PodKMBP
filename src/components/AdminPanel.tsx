@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Users, UserCheck, MessageSquare, FileText, Settings, LogOut, 
   Plus, Edit2, Trash2, Send, CornerDownRight, Check, AlertCircle, ShieldAlert,
   Clock, CheckCircle2, Lightbulb, AlertTriangle, Image, Music, Download, Play,
-  Eye, EyeOff
+  Eye, EyeOff, Copy, Maximize2
 } from 'lucide-react';
 import { MusicPlayer } from './MusicPlayer';
 
@@ -264,6 +264,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [replyMediaLoading, setReplyMediaLoading] = useState(false);
   
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  // Text utilities for coping and full-screen viewing
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [expandedText, setExpandedText] = useState<string | null>(null);
+
+  const handleCopyText = (text: string, id: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    }).catch(err => {
+      console.error('Failed to copy text: ', err);
+    });
+  };
 
   const isOwner = currentAdmin.id === 'owner';
 
@@ -1097,7 +1110,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                               {new Date(take.createdAt).toLocaleDateString()}
                             </span>
                           </div>
-                          <p className="text-sm text-white font-medium whitespace-pre-line">{take.content}</p>
+                          <div className="relative group/take-content bg-wine/20 border border-gummy/10 rounded-xl p-3 mt-1.5 max-h-36 overflow-y-auto">
+                            <p className="text-sm text-white font-medium whitespace-pre-line pr-16 leading-relaxed">{take.content}</p>
+                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/take-content:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => handleCopyText(take.content, `take-${take.id}`)}
+                                title="Скопировать"
+                                className="p-1 rounded bg-wine-dark/70 border border-gummy/20 text-gummy hover:text-white hover:bg-wine transition-all cursor-pointer"
+                              >
+                                {copiedId === `take-${take.id}` ? <Check size={12} className="text-green-400" /> : <Copy size={12} />}
+                              </button>
+                              <button
+                                onClick={() => setExpandedText(take.content)}
+                                title="На весь экран"
+                                className="p-1 rounded bg-wine-dark/70 border border-gummy/20 text-gummy hover:text-white hover:bg-wine transition-all cursor-pointer"
+                              >
+                                <Maximize2 size={12} />
+                              </button>
+                            </div>
+                          </div>
                           
                           {(() => {
                             const mediaUrls = parseMediaUrls(take.imageUrl);
@@ -1268,9 +1299,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           </span>
                           <span className="text-xs text-gummy/60 font-mono">ID: {activeChatTake.id}</span>
                         </div>
-                        <p className="text-sm font-semibold text-white mt-2 max-h-16 overflow-y-auto pr-1">
-                          "{activeChatTake.content}"
-                        </p>
+                        <div className="relative group/take-header bg-wine/25 border border-gummy/15 rounded-xl p-3 mt-2">
+                          <p className="text-xs xl:text-sm font-semibold text-white max-h-24 overflow-y-auto pr-16 leading-relaxed whitespace-pre-line">
+                            "{activeChatTake.content}"
+                          </p>
+                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/take-header:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handleCopyText(activeChatTake.content, `chat-${activeChatTake.id}`)}
+                              title="Скопировать"
+                              className="p-1 rounded bg-wine-dark/70 border border-gummy/20 text-gummy hover:text-white transition-all cursor-pointer"
+                            >
+                              {copiedId === `chat-${activeChatTake.id}` ? <Check size={12} className="text-green-400" /> : <Copy size={12} />}
+                            </button>
+                            <button
+                              onClick={() => setExpandedText(activeChatTake.content)}
+                              title="На весь экран"
+                              className="p-1 rounded bg-wine-dark/70 border border-gummy/20 text-gummy hover:text-white transition-all cursor-pointer"
+                            >
+                              <Maximize2 size={12} />
+                            </button>
+                          </div>
+                        </div>
                         {(() => {
                           const mediaUrls = parseMediaUrls(activeChatTake.imageUrl);
                           if (mediaUrls.length === 0) return null;
@@ -1309,13 +1358,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         {activeChatTake.dialogue && activeChatTake.dialogue.map((msg: any, index) => (
                           <div
                             key={index}
-                            className={`max-w-[85%] rounded-xl p-3 text-xs flex flex-col gap-1 ${
+                            className={`max-w-[85%] rounded-xl p-3 text-xs flex flex-col gap-1 relative group/msg ${
                               msg.sender === 'admin'
                                 ? 'bg-gummy text-wine self-end rounded-tr-none'
                                 : 'bg-wine-dark/60 border border-gummy/30 text-white self-start rounded-tl-none'
                             }`}
                           >
-                            <p className="font-medium whitespace-pre-line leading-relaxed">{msg.text}</p>
+                            <p className="font-medium whitespace-pre-line leading-relaxed pr-6">{msg.text}</p>
+                            
+                            <button
+                              onClick={() => handleCopyText(msg.text, `msg-gen-${index}`)}
+                              title="Скопировать сообщение"
+                              className={`absolute top-2 right-2 p-1 rounded transition-all opacity-0 group-hover/msg:opacity-100 cursor-pointer ${
+                                msg.sender === 'admin' 
+                                  ? 'bg-wine/10 text-wine hover:bg-wine/20' 
+                                  : 'bg-wine-dark/60 text-gummy hover:text-white border border-gummy/20'
+                              }`}
+                            >
+                              {copiedId === `msg-gen-${index}` ? <Check size={11} className="text-green-400" /> : <Copy size={11} />}
+                            </button>
                             
                             {msg.mediaUrls && msg.mediaUrls.length > 0 && (
                               <div className="flex flex-wrap gap-2 mt-1.5">
@@ -1840,9 +1901,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           </p>
                         )}
 
-                        <p className="text-sm font-semibold text-white mt-2 max-h-16 overflow-y-auto pr-1">
-                          "{activeChatTake.content}"
-                        </p>
+                        <div className="relative group/take-header bg-wine/25 border border-gummy/15 rounded-xl p-3 mt-2">
+                          <p className="text-xs xl:text-sm font-semibold text-white max-h-24 overflow-y-auto pr-16 leading-relaxed whitespace-pre-line">
+                            "{activeChatTake.content}"
+                          </p>
+                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/take-header:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handleCopyText(activeChatTake.content, `chat-${activeChatTake.id}`)}
+                              title="Скопировать"
+                              className="p-1 rounded bg-wine-dark/70 border border-gummy/20 text-gummy hover:text-white transition-all cursor-pointer"
+                            >
+                              {copiedId === `chat-${activeChatTake.id}` ? <Check size={12} className="text-green-400" /> : <Copy size={12} />}
+                            </button>
+                            <button
+                              onClick={() => setExpandedText(activeChatTake.content)}
+                              title="На весь экран"
+                              className="p-1 rounded bg-wine-dark/70 border border-gummy/20 text-gummy hover:text-white transition-all cursor-pointer"
+                            >
+                              <Maximize2 size={12} />
+                            </button>
+                          </div>
+                        </div>
                         {(() => {
                           const mediaUrls = parseMediaUrls(activeChatTake.imageUrl);
                           if (mediaUrls.length === 0) return null;
@@ -1881,13 +1960,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         {activeChatTake.dialogue && activeChatTake.dialogue.map((msg: any, index) => (
                           <div
                             key={index}
-                            className={`max-w-[85%] rounded-xl p-3 text-xs flex flex-col gap-1 ${
+                            className={`max-w-[85%] rounded-xl p-3 text-xs flex flex-col gap-1 relative group/msg ${
                               msg.sender === 'admin'
                                 ? 'bg-gummy text-wine self-end rounded-tr-none'
                                 : 'bg-wine-dark/60 border border-gummy/30 text-white self-start rounded-tl-none'
                             }`}
                           >
-                            <p className="font-medium whitespace-pre-line leading-relaxed">{msg.text}</p>
+                            <p className="font-medium whitespace-pre-line leading-relaxed pr-6">{msg.text}</p>
+                            
+                            <button
+                              onClick={() => handleCopyText(msg.text, `msg-pers-${index}`)}
+                              title="Скопировать сообщение"
+                              className={`absolute top-2 right-2 p-1 rounded transition-all opacity-0 group-hover/msg:opacity-100 cursor-pointer ${
+                                msg.sender === 'admin' 
+                                  ? 'bg-wine/10 text-wine hover:bg-wine/20' 
+                                  : 'bg-wine-dark/60 text-gummy hover:text-white border border-gummy/20'
+                              }`}
+                            >
+                              {copiedId === `msg-pers-${index}` ? <Check size={11} className="text-green-400" /> : <Copy size={11} />}
+                            </button>
                             
                             {msg.mediaUrls && msg.mediaUrls.length > 0 && (
                               <div className="flex flex-wrap gap-2 mt-1.5">
@@ -1955,6 +2046,59 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         </div>
 
       </div>
+
+      {/* Full Screen Text Modal */}
+      <AnimatePresence>
+        {expandedText && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-wine border-2 border-gummy/40 rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden"
+            >
+              <div className="p-4 border-b border-gummy/20 bg-wine-dark/40 flex justify-between items-center">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-gummy flex items-center gap-2">
+                  <FileText size={16} /> Просмотр текста обращения
+                </h3>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleCopyText(expandedText, 'modal-expanded')}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold text-wine bg-gummy hover:bg-white transition-all flex items-center gap-1.5 cursor-pointer shadow"
+                  >
+                    {copiedId === 'modal-expanded' ? (
+                      <>
+                        <Check size={14} /> Скопировано!
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={14} /> Скопировать всё
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setExpandedText(null)}
+                    className="p-1.5 rounded-lg text-gummy hover:text-white hover:bg-wine-dark/50 transition-all cursor-pointer"
+                  >
+                    <Plus className="rotate-45" size={20} />
+                  </button>
+                </div>
+              </div>
+              <div className="p-6 overflow-y-auto flex-1 bg-wine-dark/20 text-white font-medium text-sm xl:text-base whitespace-pre-line leading-relaxed selection:bg-gummy selection:text-wine">
+                {expandedText}
+              </div>
+              <div className="p-4 border-t border-gummy/10 bg-wine-dark/30 flex justify-end">
+                <button
+                  onClick={() => setExpandedText(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-wine bg-gummy hover:bg-white transition-all cursor-pointer shadow"
+                >
+                  Закрыть
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
