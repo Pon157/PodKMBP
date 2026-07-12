@@ -1,20 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Music, ExternalLink } from 'lucide-react';
+import { Play, Pause, Music } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface MusicPlayerProps {
   url: string;
   title?: string;
 }
-
-const getSafeUrl = (rawUrl: string) => {
-  try {
-    // Декодируем сначала, чтобы избежать двойного кодирования %, а затем безопасно кодируем
-    return encodeURI(decodeURI(rawUrl));
-  } catch (e) {
-    return encodeURI(rawUrl);
-  }
-};
 
 export const MusicPlayer: React.FC<MusicPlayerProps> = ({ url, title = 'Прикрепленная аудиозапись' }) => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -37,45 +28,34 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ url, title = 'Прик
       audioRef.current.pause();
     } else {
       setError(null);
-      
-      // Force load if not loaded
-      if (audioRef.current.readyState === 0) {
-        audioRef.current.load();
-      }
-
-      const playPromise = audioRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((err) => {
-          console.error('Audio playback error:', err);
-          setError('Блокировка браузера. Нажмите еще раз или откройте файл напрямую.');
-          setIsPlaying(false);
-        });
-      }
+      audioRef.current.play().catch((err) => {
+        console.error('Audio playback error:', err);
+        setError('Нажмите еще раз для воспроизведения');
+        setIsPlaying(false);
+      });
     }
   };
-
-  const safeUrl = getSafeUrl(url);
 
   return (
     <div className="bg-wine-dark/60 border-2 border-gummy/30 rounded-xl p-4 flex flex-col gap-3">
       {/* Native HTML5 Audio element for maximum compatibility (iOS Safari restriction friendly) */}
       <audio
         ref={audioRef}
-        src={safeUrl}
+        src={url}
         loop
-        preload="auto"
+        preload="metadata"
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         onEnded={() => setIsPlaying(false)}
         onError={(e) => {
           console.error('Audio file load error:', e);
-          setError('Ошибка загрузки или неподдерживаемый формат (.ogg)');
+          setError('Ошибка загрузки аудиофайла');
           setIsPlaying(false);
         }}
       />
 
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-wine flex items-center justify-center text-gummy border border-gummy/40 shrink-0">
+        <div className="w-10 h-10 rounded-full bg-wine flex items-center justify-center text-gummy border border-gummy/40">
           <Music size={18} className={isPlaying ? 'animate-spin' : ''} />
         </div>
         <div className="flex-1 min-w-0">
@@ -84,27 +64,14 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ url, title = 'Прик
             {error ? <span className="text-red-400 font-semibold">{error}</span> : 'Аудиозапись'}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {/* External Link Fallback */}
-          <a
-            href={safeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Открыть аудиофайл напрямую"
-            className="w-8 h-8 rounded-full border border-gummy/30 text-gummy/80 hover:text-gummy hover:bg-wine transition-all flex items-center justify-center cursor-pointer shrink-0"
-          >
-            <ExternalLink size={14} />
-          </a>
-          
-          <button
-            type="button"
-            id={`play-btn-${title.replace(/\s+/g, '-')}`}
-            onClick={togglePlay}
-            className="w-10 h-10 rounded-full bg-gummy text-wine hover:bg-white transition-all flex items-center justify-center font-bold shrink-0 cursor-pointer"
-          >
-            {isPlaying ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
-          </button>
-        </div>
+        <button
+          type="button"
+          id={`play-btn-${title.replace(/\s+/g, '-')}`}
+          onClick={togglePlay}
+          className="w-10 h-10 rounded-full bg-gummy text-wine hover:bg-white transition-all flex items-center justify-center font-bold"
+        >
+          {isPlaying ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
+        </button>
       </div>
 
       {/* Custom equalizer bar animation */}
