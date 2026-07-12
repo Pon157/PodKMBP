@@ -68,55 +68,49 @@ function getMimeType(filename: string, defaultMime: string = 'application/octet-
 async function saveMedia(buffer: Buffer, filename: string, mimeType: string): Promise<string> {
   const isS3Configured = !!(process.env.S3_ACCESS_KEY_ID && process.env.S3_SECRET_ACCESS_KEY && process.env.S3_BUCKET_NAME);
   const resolvedMimeType = getMimeType(filename, mimeType);
-  if (isS3Configured) {
-    try {
-      const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
-      const endpoint = process.env.S3_ENDPOINT || 'https://storage.yandexcloud.net';
-      const region = process.env.S3_REGION || 'ru-central1';
-      const accessKeyId = process.env.S3_ACCESS_KEY_ID!;
-      const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY!;
-      const bucket = process.env.S3_BUCKET_NAME!;
+  if (!isS3Configured) {
+    throw new Error('S3 is not configured. Local file uploads are strictly disabled to prevent saving files on the server.');
+  }
 
-      const s3 = new S3Client({
-        endpoint: endpoint || undefined,
-        region: region,
-        credentials: {
-          accessKeyId: accessKeyId,
-          secretAccessKey: secretAccessKey,
-        },
-        forcePathStyle: true,
-      });
+  try {
+    const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
+    const endpoint = process.env.S3_ENDPOINT || 'https://storage.yandexcloud.net';
+    const region = process.env.S3_REGION || 'ru-central1';
+    const accessKeyId = process.env.S3_ACCESS_KEY_ID!;
+    const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY!;
+    const bucket = process.env.S3_BUCKET_NAME!;
 
-      const key = `uploads/${Date.now()}_${filename}`;
-      const command = new PutObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        Body: buffer,
-        ContentType: resolvedMimeType,
-      });
+    const s3 = new S3Client({
+      endpoint: endpoint || undefined,
+      region: region,
+      credentials: {
+        accessKeyId: accessKeyId,
+        secretAccessKey: secretAccessKey,
+      },
+      forcePathStyle: true,
+    });
 
-      await s3.send(command);
+    const key = `uploads/${Date.now()}_${filename}`;
+    const command = new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: buffer,
+      ContentType: resolvedMimeType,
+    });
 
-      if (process.env.S3_PUBLIC_URL) {
-        const base = process.env.S3_PUBLIC_URL.replace(/\/$/, '');
-        return `${base}/${key}`;
-      }
-      
-      const cleanEndpoint = endpoint.replace(/\/$/, '');
-      return `${cleanEndpoint}/${bucket}/${key}`;
-    } catch (s3Err) {
-      console.error('S3 upload in bot failed, falling back to local file:', s3Err);
+    await s3.send(command);
+
+    if (process.env.S3_PUBLIC_URL) {
+      const base = process.env.S3_PUBLIC_URL.replace(/\/$/, '');
+      return `${base}/${key}`;
     }
+    
+    const cleanEndpoint = endpoint.replace(/\/$/, '');
+    return `${cleanEndpoint}/${bucket}/${key}`;
+  } catch (s3Err: any) {
+    console.error('S3 upload in bot failed:', s3Err);
+    throw new Error(`S3 upload failed: ${s3Err.message || s3Err}`);
   }
-
-  // Fallback to local storage
-  const uploadsDir = path.join(process.cwd(), 'uploads');
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
-  const filePath = path.join(uploadsDir, filename);
-  fs.writeFileSync(filePath, buffer);
-  return `/uploads/${filename}`;
 }
 
 export let botInstance: Telegraf | null = null;
@@ -322,10 +316,10 @@ if (!token) {
     await ctx.reply(
       `<tg-emoji emoji-id="5461117441612462242">🙂</tg-emoji> <b>Привет, ${user.first_name || 'пользователь'}! Это официальный бот обратной связи.</b> \n\n` +
       `Здесь вы можете:\n` +
-      `1️⃣ <tg-emoji emoji-id="5458603043203327669">🔔</tg-emoji> <b>Получать мгновенные уведомления</b> о статусе ваших тейков/идей.\n` +
-      `2️⃣ <tg-emoji emoji-id="5443038326535759644">💬</tg-emoji> <b>Вести живой диалог</b> с администрацией платформы прямо через чат бота!\n` +
-      `3️⃣ <tg-emoji emoji-id="5467538555158943525">💭</tg-emoji> <b>Отправлять фотографии</b> и дополнительные медиа-файлы.\n\n` +
-      `💻 <tg-emoji emoji-id="5447410659077661506">🌐</tg-emoji> Чтобы отправить свой первый тейк или войти в личный кабинет, откройте сайт платформы и нажмите <i>"Войти через Telegram"</i>!`,
+      `1. <tg-emoji emoji-id="5458603043203327669">🔔</tg-emoji> <b>Получать мгновенные уведомления</b> о статусе ваших тейков/идей.\n` +
+      `2. <tg-emoji emoji-id="5443038326535759644">💬</tg-emoji> <b>Вести живой диалог</b> с администрацией платформы прямо через чат бота!\n` +
+      `3. <tg-emoji emoji-id="5467538555158943525">💭</tg-emoji> <b>Отправлять фотографии</b> и дополнительные медиа-файлы.\n\n` +
+      `<tg-emoji emoji-id="5447410659077661506">🌐</tg-emoji> Чтобы отправить свой первый тейк или войти в личный кабинет, откройте сайт платформы и нажмите <i>"Войти через Telegram"</i>!`,
       { parse_mode: 'HTML' }
     );
   }
@@ -606,7 +600,7 @@ bot.on('message', async (ctx) => {
           `<b>Пользователь:</b> ${ctx.from.first_name}\n` +
           `<b>Сообщение:</b> ${textContent}\n` +
           (mediaUrls.length > 0 ? `🖼️ <i>Прикреплены новые файлы (${mediaUrls.length} шт.)</i>\n` : '') +
-          `\n🔗 <a href="${chatLink}">Ответьте через админ-панель на сайте!</a>`;
+          `\n<tg-emoji emoji-id="5271604874419647061">🔗</tg-emoji> <a href="${chatLink}">Ответьте через админ-панель на сайте!</a>`;
         
         if (mediaUrls && mediaUrls.length > 0) {
           await sendTelegramNotificationWithMedia(targetAdmin.tgId, adminNotification, mediaUrls);
