@@ -116,6 +116,98 @@ export function downloadAllAttachments(urls: string[]): void {
   });
 }
 
+export function renderAttachment(url: string, i: number): React.ReactNode {
+  const isAudio = !!url.match(/\.(mp3|wav|ogg|m4a|aac|flac)$/i) || url.toLowerCase().includes('audio');
+  const isVideo = !!url.match(/\.(mp4|mov|webm|mkv|avi)$/i) || url.toLowerCase().includes('video');
+  const isImage = !!url.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i) || url.toLowerCase().includes('image') || url.toLowerCase().includes('photo');
+
+  if (isVideo) {
+    return (
+      <div key={i} className="flex flex-col gap-1 max-w-[200px] mt-1">
+        <video
+          src={url}
+          controls
+          className="max-w-[200px] max-h-[150px] rounded-lg border border-gummy/25 shadow-md bg-black"
+        />
+        <a href={url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-gummy/80 hover:underline truncate">
+          Открыть видео #{i + 1}
+        </a>
+      </div>
+    );
+  }
+
+  if (isAudio) {
+    return (
+      <div key={i} className="flex flex-col gap-1 w-full max-w-[240px] mt-1">
+        <audio
+          src={url}
+          controls
+          className="w-full max-h-[32px] rounded-lg border border-gummy/25 shadow-md"
+        />
+        <a href={url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-gummy/80 hover:underline truncate px-1">
+          Аудиозапись #{i + 1}
+        </a>
+      </div>
+    );
+  }
+
+  if (isImage) {
+    return (
+      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block relative group mt-1">
+        <img
+          src={url}
+          alt="attachment"
+          className="max-w-[160px] max-h-[120px] rounded-lg object-cover border border-gummy/25 hover:opacity-90 transition-opacity"
+        />
+        <span className="absolute bottom-0.5 right-0.5 bg-black/70 text-[8px] text-white px-1 rounded">#{i + 1}</span>
+      </a>
+    );
+  }
+
+  // Fallback as general file / document
+  return (
+    <a
+      key={i}
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-1.5 px-3 py-2 bg-wine-dark/40 border border-gummy/20 rounded-lg hover:bg-wine-dark/60 transition-all text-[11px] text-white font-medium mt-1"
+    >
+      <FileText size={14} className="text-gummy" />
+      <span className="truncate max-w-[120px]">Файл #{i + 1}</span>
+    </a>
+  );
+}
+
+export function renderUploadPreview(
+  url: string,
+  idx: number,
+  setMediaListFn: React.Dispatch<React.SetStateAction<string[]>>
+): React.ReactNode {
+  const isAudio = !!url.match(/\.(mp3|wav|ogg|m4a|aac|flac)$/i) || url.toLowerCase().includes('audio');
+  const isVideo = !!url.match(/\.(mp4|mov|webm|mkv|avi)$/i) || url.toLowerCase().includes('video');
+
+  return (
+    <div key={idx} className="relative w-12 h-12 bg-wine-dark/60 border border-gummy/30 rounded-lg flex items-center justify-center overflow-hidden group">
+      {isAudio ? (
+        <Music size={18} className="text-gummy" />
+      ) : isVideo ? (
+        <Play size={18} className="text-gummy animate-pulse" />
+      ) : (
+        <img src={url} alt="Attachment preview" className="w-full h-full object-cover" />
+      )}
+      <button
+        type="button"
+        onClick={() => setMediaListFn(prev => prev.filter((_, i) => i !== idx))}
+        className="absolute inset-0 bg-red-600/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold cursor-pointer"
+        title="Удалить"
+      >
+        ✕
+      </button>
+    </div>
+  );
+}
+
 export const AdminPanel: React.FC<AdminPanelProps> = ({
   currentAdmin,
   onLogout,
@@ -1220,16 +1312,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                             <p className="font-medium whitespace-pre-line leading-relaxed">{msg.text}</p>
                             
                             {msg.mediaUrls && msg.mediaUrls.length > 0 && (
-                              <div className="flex flex-wrap gap-1.5 mt-1.5">
-                                {msg.mediaUrls.map((url: string, i: number) => (
-                                  <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block">
-                                    <img
-                                      src={url}
-                                      alt="attachment"
-                                      className="max-w-[160px] max-h-[120px] rounded-lg object-cover border border-gummy/25 hover:opacity-90 transition-opacity"
-                                    />
-                                  </a>
-                                ))}
+                              <div className="flex flex-wrap gap-2 mt-1.5">
+                                {msg.mediaUrls.map((url: string, i: number) => renderAttachment(url, i))}
                               </div>
                             )}
 
@@ -1243,18 +1327,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       {/* Upload Previews */}
                       {replyMediaList.length > 0 && (
                         <div className="flex flex-wrap gap-2 p-2 bg-wine/25 border border-gummy/10 rounded-xl mb-2">
-                          {replyMediaList.map((url, idx) => (
-                            <div key={idx} className="relative w-12 h-12 bg-wine border-2 border-gummy rounded-lg overflow-hidden group">
-                              <img src={url} alt="Uploaded attachment" className="w-full h-full object-cover" />
-                              <button
-                                type="button"
-                                onClick={() => setReplyMediaList(prev => prev.filter((_, i) => i !== idx))}
-                                className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          ))}
+                          {replyMediaList.map((url, idx) => renderUploadPreview(url, idx, setReplyMediaList))}
                         </div>
                       )}
 
@@ -1263,7 +1336,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         <label className="flex items-center justify-center bg-wine border-2 border-gummy/20 text-gummy hover:text-white rounded-xl px-3 cursor-pointer hover:border-gummy transition-all select-none">
                           <input
                             type="file"
-                            accept="image/*"
+                            accept="image/*,video/*,.mp3,.wav,.m4a,.aac,.flac,.ogg,.mp4,.mov"
                             multiple
                             onChange={handleReplyFileChange}
                             className="hidden"
@@ -1784,6 +1857,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
                       {/* Dialogue Chat Messages */}
                       <div className="flex-1 overflow-y-auto flex flex-col gap-3 p-2 bg-wine/30 rounded-lg mb-3">
+                        {/* Prompt Message */}
                         <div className="bg-wine-dark/30 border border-gummy/10 p-3 rounded-lg text-xs italic text-gummy/80">
                           Это начало диалога техподдержки с пользователем.
                         </div>
@@ -1800,16 +1874,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                             <p className="font-medium whitespace-pre-line leading-relaxed">{msg.text}</p>
                             
                             {msg.mediaUrls && msg.mediaUrls.length > 0 && (
-                              <div className="flex flex-wrap gap-1.5 mt-1.5">
-                                {msg.mediaUrls.map((url: string, i: number) => (
-                                  <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block">
-                                    <img
-                                      src={url}
-                                      alt="attachment"
-                                      className="max-w-[160px] max-h-[120px] rounded-lg object-cover border border-gummy/25 hover:opacity-90 transition-opacity"
-                                    />
-                                  </a>
-                                ))}
+                              <div className="flex flex-wrap gap-2 mt-1.5">
+                                {msg.mediaUrls.map((url: string, i: number) => renderAttachment(url, i))}
                               </div>
                             )}
 
@@ -1823,18 +1889,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       {/* Upload Previews */}
                       {replyMediaList.length > 0 && (
                         <div className="flex flex-wrap gap-2 p-2 bg-wine/25 border border-gummy/10 rounded-xl mb-2">
-                          {replyMediaList.map((url, idx) => (
-                            <div key={idx} className="relative w-12 h-12 bg-wine border-2 border-gummy rounded-lg overflow-hidden group">
-                              <img src={url} alt="Uploaded attachment" className="w-full h-full object-cover" />
-                              <button
-                                type="button"
-                                onClick={() => setReplyMediaList(prev => prev.filter((_, i) => i !== idx))}
-                                className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          ))}
+                          {replyMediaList.map((url, idx) => renderUploadPreview(url, idx, setReplyMediaList))}
                         </div>
                       )}
 
@@ -1843,7 +1898,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         <label className="flex items-center justify-center bg-wine border-2 border-gummy/20 text-gummy hover:text-white rounded-xl px-3 cursor-pointer hover:border-gummy transition-all select-none">
                           <input
                             type="file"
-                            accept="image/*"
+                            accept="image/*,video/*,.mp3,.wav,.m4a,.aac,.flac,.ogg,.mp4,.mov"
                             multiple
                             onChange={handleReplyFileChange}
                             className="hidden"
