@@ -35,6 +35,7 @@ export interface Survey {
   age: number; // how old are you?
   roleInterest: string; // what do you want to do?
   helpDescription: string; // how are you ready to help?
+  tgUsername: string; // telegram username for contact
   createdAt: string;
 }
 
