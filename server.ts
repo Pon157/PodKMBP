@@ -639,11 +639,17 @@ app.post('/api/takes', async (req, res) => {
         }
       }
     } else {
-      // General takes are sent to ALL admins
+      // General takes are sent to ALL admins who are NOT on vacation (isInRest is false)
       recipients = allAdmins
+        .filter(a => !a.isInRest)
         .map(a => a.tgId)
         .filter((tgId): tgId is string => !!tgId && tgId.trim() !== '');
     }
+
+    console.log(`[Take Submission] ID: ${newTake.id}, Type: ${newTake.type}, TargetAdminId: ${targetAdminId}`);
+    console.log(`[Take Submission] Total admins fetched from database: ${allAdmins.length}`);
+    console.log(`[Take Submission] Resolved recipients count: ${recipients.length}`);
+    console.log(`[Take Submission] Recipients list:`, recipients);
 
     if (recipients.length > 0) {
       const baseUrl = process.env.APP_URL || '';
