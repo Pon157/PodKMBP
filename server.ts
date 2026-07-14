@@ -585,25 +585,25 @@ app.post('/api/takes', async (req, res) => {
       typeLabel = 'Жалоба в тех. поддержку ⚠️';
     }
     let targetName = 'Все администраторы';
-    let targetTgId = '';
-
     const allAdmins = await Storage.getAdmins();
+    let recipients: string[] = [];
 
     if (targetAdminId && targetAdminId !== 'all') {
       const targetAdmin = allAdmins.find(a => a.id === targetAdminId);
       if (targetAdmin) {
         targetName = targetAdmin.nickname;
-        targetTgId = targetAdmin.tgId;
+        if (targetAdmin.tgId) {
+          recipients.push(targetAdmin.tgId);
+        }
       }
     } else {
-      // Target Owner tgId for general takes
-      const owner = allAdmins.find(a => a.id === 'owner');
-      if (owner) {
-        targetTgId = owner.tgId;
-      }
+      // General takes are sent to ALL admins
+      recipients = allAdmins
+        .map(a => a.tgId)
+        .filter((tgId): tgId is string => !!tgId && tgId.trim() !== '');
     }
 
-    if (targetTgId) {
+    if (recipients.length > 0) {
       const baseUrl = process.env.APP_URL || '';
       const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
       const chatLink = `${cleanBaseUrl}/admin-panel?takeId=${newTake.id}`;
@@ -627,7 +627,9 @@ app.post('/api/takes', async (req, res) => {
           mediaUrls = [imageUrl];
         }
       }
-      await notifyTelegram(targetTgId, text, mediaUrls);
+      for (const tgId of recipients) {
+        await notifyTelegram(tgId, text, mediaUrls);
+      }
     }
 
     res.json(newTake);
