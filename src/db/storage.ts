@@ -69,6 +69,7 @@ export const defaultSurveys = [
     age: 19,
     roleInterest: 'Помощник дизайнера / Модератор',
     helpDescription: 'Готов модерировать чат, делать превьюшки и помогать с оформлением постов.',
+    tgUsername: '@default_user',
     createdAt: new Date(Date.now() - 3600000 * 5).toISOString()
   }
 ];
@@ -174,6 +175,9 @@ export const Storage = {
               created_at TEXT NOT NULL
             );
           `);
+
+          // Add newer columns to surveys if missing
+          await client.query(`ALTER TABLE surveys ADD COLUMN IF NOT EXISTS tg_username TEXT NOT NULL DEFAULT '';`);
 
           // 4. Create prices table
           await client.query(`
