@@ -1466,6 +1466,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         <div className="flex flex-col gap-1.5 pr-20">
                           <span className="text-[10px] text-gummy/50 font-bold uppercase tracking-wider">Кандидат возраст: {survey.age} лет</span>
                           <h3 className="text-base font-bold text-white">Желаемая роль: {survey.roleInterest}</h3>
+                          {survey.tgUsername && (
+                            <div className="text-xs text-gummy font-semibold mt-1 flex items-center gap-1.5 bg-wine/40 px-2.5 py-1 rounded-lg w-fit border border-gummy/10">
+                              <span>Telegram для связи:</span>
+                              <a 
+                                href={`https://t.me/${survey.tgUsername.replace('@', '')}`} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="text-white hover:underline hover:text-gummy transition-colors font-bold"
+                              >
+                                {survey.tgUsername}
+                              </a>
+                            </div>
+                          )}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-wine/30 p-3.5 rounded-lg border border-gummy/10">
