@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
+import https from 'https';
 import { createServer as createViteServer } from 'vite';
 import { Storage } from './src/db/storage.ts';
 import dotenv from 'dotenv';
@@ -90,6 +91,56 @@ function getActiveCount(): number {
   return Math.max(1, activeUsers.size);
 }
 
+// Helper for sending direct HTTP requests to Telegram API via proxy if configured
+function sendDirectTelegramMessage(tgId: string, text: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    const proxy = process.env.TELEGRAM_PROXY;
+    const url = `https://api.telegram.org/bot${token}/sendMessage`;
+    
+    const payload = JSON.stringify({
+      chat_id: tgId,
+      text: text,
+      parse_mode: 'HTML',
+    });
+
+    const options: any = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload),
+      },
+    };
+
+    if (proxy) {
+      options.agent = new HttpsProxyAgent(proxy);
+    }
+
+    const req = https.request(url, options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      res.on('end', () => {
+        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(true);
+        } else {
+          console.error('Direct Telegram API error response:', res.statusCode, data);
+          resolve(false);
+        }
+      });
+    });
+
+    req.on('error', (err) => {
+      console.error('Direct Telegram API request failed:', err);
+      resolve(false);
+    });
+
+    req.write(payload);
+    req.end();
+  });
+}
+
 // Telegram Bot helper
 async function notifyTelegram(tgId: string, text: string, mediaUrls?: string[]) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -113,21 +164,12 @@ async function notifyTelegram(tgId: string, text: string, mediaUrls?: string[]) 
       }
     }
 
-    console.log('Bot client not ready or failed, falling back to direct Telegram API fetch...');
-    const url = `https://api.telegram.org/bot${token}/sendMessage`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: tgId,
-        text: text,
-        parse_mode: 'HTML',
-      }),
-    });
-    if (!res.ok) {
-      console.error('Telegram API responded with error status:', res.status, await res.text());
+    console.log('Bot client not ready or failed, falling back to direct Telegram API fetch (with proxy fallback)...');
+    const sentDirectly = await sendDirectTelegramMessage(tgId, text);
+    if (sentDirectly) {
+      console.log('Telegram message sent successfully via direct proxy-aware fetch to chatId:', tgId);
     } else {
-      console.log('Telegram message sent successfully via direct fetch to chatId:', tgId);
+      console.error('Failed to deliver Telegram message both via Bot client and direct API fetch.');
     }
   } catch (err) {
     console.error('Failed to send Telegram message:', err);
