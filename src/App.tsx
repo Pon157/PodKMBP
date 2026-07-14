@@ -1936,6 +1936,7 @@ const TakeSubmissionPage: React.FC<TakeSubmissionPageProps> = ({ admins: initial
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   rows={4}
+                  maxLength={15000}
                   className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 text-white text-xs outline-none focus:border-gummy resize-none placeholder-gummy/30"
                   placeholder="Опишите подробно все детали вашего тейка..."
                   required
@@ -2214,6 +2215,7 @@ const SurveyFormPage: React.FC = () => {
   const [age, setAge] = useState('');
   const [roleInterest, setRoleInterest] = useState('');
   const [helpDescription, setHelpDescription] = useState('');
+  const [tgUsername, setTgUsername] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -2242,8 +2244,8 @@ const SurveyFormPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!source || !sphere || !age || !roleInterest || !helpDescription) {
-      setErrorMsg('Пожалуйста, ответьте на все вопросы анкеты.');
+    if (!source || !sphere || !age || !roleInterest || !helpDescription || !tgUsername) {
+      setErrorMsg('Пожалуйста, заполните все поля анкеты.');
       return;
     }
     if (!captchaAnswer.trim()) {
@@ -2264,6 +2266,7 @@ const SurveyFormPage: React.FC = () => {
           age,
           roleInterest,
           helpDescription,
+          tgUsername,
           captchaId: captcha?.captchaId,
           captchaAnswer,
         }),
@@ -2340,6 +2343,20 @@ const SurveyFormPage: React.FC = () => {
                 <AlertCircle size={15} /> {errorMsg}
               </div>
             )}
+
+            {/* Telegram Username */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs xl:text-lg font-semibold text-gummy">Ваш Telegram юзернейм для связи *</label>
+              <input
+                id="q-tg-username"
+                type="text"
+                value={tgUsername}
+                onChange={(e) => setTgUsername(e.target.value)}
+                placeholder="Например: @username или просто username"
+                className="bg-wine border-2 border-gummy/20 rounded-xl px-4 py-2.5 xl:py-4 text-white text-xs xl:text-base outline-none focus:border-gummy placeholder:text-gummy/30"
+                required
+              />
+            </div>
 
             {/* Q1 */}
             <div className="flex flex-col gap-1.5">
