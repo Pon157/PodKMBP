@@ -772,11 +772,17 @@ app.post('/api/takes/:id/dialogue', async (req, res) => {
 // Submit a Survey (Anketa)
 app.post('/api/surveys', async (req, res) => {
   try {
-    const { source, sphere, age, roleInterest, helpDescription, captchaId, captchaAnswer } = req.body;
+    const { source, sphere, age, roleInterest, helpDescription, tgUsername, captchaId, captchaAnswer } = req.body;
 
-    if (!source || !sphere || !age || !roleInterest || !helpDescription) {
+    if (!source || !sphere || !age || !roleInterest || !helpDescription || !tgUsername) {
       return res.status(400).json({ error: 'Все поля анкеты обязательны' });
     }
+
+    const trimmedTg = tgUsername.trim();
+    if (!trimmedTg) {
+      return res.status(400).json({ error: 'Юзернейм Телеграм обязателен для связи' });
+    }
+    const formattedTg = trimmedTg.startsWith('@') ? trimmedTg : '@' + trimmedTg;
 
     if (!captchaId || !captchaAnswer) {
       return res.status(400).json({ error: 'Пройдите капчу перед отправкой!' });
@@ -798,6 +804,7 @@ app.post('/api/surveys', async (req, res) => {
       age: Number(age),
       roleInterest,
       helpDescription,
+      tgUsername: formattedTg,
       createdAt: new Date().toISOString()
     };
 
@@ -808,6 +815,7 @@ app.post('/api/surveys', async (req, res) => {
     const owner = allAdmins.find(a => a.id === 'owner');
     if (owner && owner.tgId) {
       const tgText = `<b><tg-emoji emoji-id="5382357040008021292">🆕</tg-emoji> ПОЛУЧЕНА НОВАЯ АНКЕТА В КОМАНДУ!</b>\n\n` +
+        `<b>Telegram для связи:</b> ${formattedTg}\n` +
         `<b>1. Откуда узнали:</b> ${source}\n` +
         `<b>2. Сфера деятельности:</b> ${sphere}\n` +
         `<b>3. Возраст:</b> ${age}\n` +
