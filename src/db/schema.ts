@@ -44,6 +44,7 @@ export const surveys = pgTable('surveys', {
   age: integer('age').notNull(),
   roleInterest: text('role_interest').notNull(),
   helpDescription: text('help_description').notNull(),
+  tgUsername: text('tg_username').notNull().default(''),
   createdAt: text('created_at').notNull(),
 });
 
